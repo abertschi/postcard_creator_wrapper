@@ -17,3 +17,14 @@ This project is still in early development. Feedback and support appreaciated.
     w = PostcardCreatorWrapper(token)
     w.send_free_card(postcard=card)
 ```
+
+## API
+```python
+    w = PostcardCreatorWrapper(token)
+    w.get_user_info()
+    w.get_billing_saldo()
+    w.get_quota()
+    w.has_free_postcard()
+    w.send_free_card(postcard=)
+    
+```
