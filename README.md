@@ -2,7 +2,7 @@
 A python wrapper around the Rest API of the Swiss Postcard creator
 
 
-This project is still in early development. Feedback and support appreaciated.
+This project is still in early development. Feedback and support appreciated.
 
 ```python
     Debug.debug = True
