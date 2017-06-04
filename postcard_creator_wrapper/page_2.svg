@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Postcard A6: backside -->
+<svg
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        xmlns:dl="http://post.ch/directfactory/delivery"
+        version="1.1"
+        dl:priority="true"
+        width="148mm"
+        height="105mm"
+        font-family="Arial"
+        viewBox="0 0 148 105" overflow="visible">
+    <defs>
+        <rect id="card" x="0" y="0" width="148" height="105"/>
+        <rect id="userarea-back" x="0" y="0" width="66" height="90"/>
+        <rect id="userarea-back-bleed" x="-3" y="-3" width="69" height="93"/>
+        <rect id="frankierzone" x="73" y="0" width="75" height="38"/>
+        <rect id="adresszone" x="73" y="40" width="60" height="45"/>
+        <rect id="absenderzone" x="73" y="39" width="60" height="8"/>
+        <rect id="empfaengerzone" x="73" y="52" width="60" height="33"/>
+        <rect id="codierzone" x="0" y="90" width="148" height="15"/>
+        <path id="reserved-area"
+              d="M 66,0 L 148,0 L 148,105 L 0,105 L 0,90 L 66,90 z"/>
+        <rect id="recommended-userarea-back" x="5" y="5" width="61" height="85"/>
+        <path id="fadeout-userarea-back"
+              d="M -3,-3 L 151,-3 L 151,0 L 0,0 L 0,108 L -3,108 z"/>
+        <clipPath id="user-zone">
+            <use xlink:href="#userarea-back-bleed"/>
+        </clipPath>
+        <clipPath id="preview-clip">
+            <use xlink:href="#card"/>
+        </clipPath>
+        <text id="senderField-company">{sender_company}</text>
+        <text id="senderField-name">{sender_name}</text>
+        <text id="senderField-address">{sender_adress}</text>
+        <text id="senderField-zipAndPlace">{sender_zip_code} {sender_place}</text>
+        <text id="senderField-country"></text>
+    </defs>
+    <g id="background" class="layer non-editable edit-help">
+        <rect x="-3" y="-3" width="154" height="111" style="fill:#DDDDDD"/>
+        <use xlink:href="#userarea-back" style="fill:white; stroke:none"/>
+        <use xlink:href="#reserved-area" style="fill:#BBBBBB; stroke:none"/>
+    </g>
+    <g id="reserved" class="layer non-editable debug" visibility="hidden">
+        <g style="fill:none; stroke:black; stroke-width:0.1; stroke-dasharray:2,2">
+            <use xlink:href="#frankierzone"/>
+            <use xlink:href="#codierzone"/>
+            <use xlink:href="#absenderzone"/>
+            <use xlink:href="#empfaengerzone"/>
+            <use xlink:href="#userarea-back-bleed"/>
+        </g>
+    </g>
+    <g id="clip-test" class="layer non-editable debug" visibility="hidden" clip-path="url(#preview-clip
+)">
+        <rect x="-3" y="-3" width="154" height="111" style="fill:#ddddff; stroke:none"/>
+    </g>
+    <g
+            id="user-area"
+            class="layer user-area"
+            clip-path="url(#user-zone)">
+        <!-- center text vertically ....#issue PCC-496 remove Advertisement in case of paid postcards /
+    center text vertically in SVG-->
+        <foreignObject requiredExtensions="http://www.w3.org/1999/xhtml" x="0" y="0" width="61" height="63"
+                       transform="matrix(1 0 0 1 5 34.375)">
+            <html
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    xmlns:pers="http://post.ch/directfactory/personalization"
+                    xmlns:class="my:class">
+                <body>
+                    <p>
+                        <span style="color:#000000;font-family:'Arial';font-size:10pt;font-style:normal;font-weight
+:normal;text-align:start;text-decoration:none;">
+                            <p>
+                                <span style="font-family:'Arial';font-size:10pt;"
+                                >Yo
+                                </span>
+                            </p>
+                        </span>
+                    </p>
+                </body>
+            </html>
+        </foreignObject>
+        <!-- promotion text here....#issue PCC-496 remove Advertisement in case of paid postcards / center
+      text vertically in SVG-->
+        <rect style="stroke-linecap:butt;fill-opacity:1;font-family:Frutiger;stroke-linejoin:miter;stroke-width
+:0;stroke:#ffcc00;stroke-opacity:0;fill:#ffcc00;" x="-3" y="68" width="69" height="22"/>
+        <foreignObject
+                requiredExtensions="http://www.w3.org/1999/xhtml" x="0" y="0" width="61" height="14" transform="matrix
+(1 0 0 1 5 70)">
+            <html xmlns="http://www.w3.org/1999/xhtml" xmlns:class="my:class"
+                  xmlns:pers="http://post.ch/directfactory/personalization">
+                <body>
+                    <p>
+                        <span style="color:#000000;font-family:'Frutiger 45
+ Light';font-size:7pt;font-style:normal;font-weight:normal;text-align:start;text-decoration:none;">Create
+                            and send real postcards by smartphone. It&#39;s easy with the PostCard Creator App. Download
+                            it now
+                            free of charge.
+                        </span>
+                    </p>
+                </body>
+            </html>
+        </foreignObject>
+        <foreignObject requiredExtensions="http://www
+.w3.org/1999/xhtml" x="0" y="0" width="61" height="3.4" transform="matrix(1 0 0 1 5 84.6)">
+            <html xmlns
+                          ="http://www.w3.org/1999/xhtml" xmlns:class="my:class"
+                  xmlns:pers="http://post.ch/directfactory/personalization">
+                <body>
+                    <p>
+                        <span style="font-family:'Frutiger 45 Light';font-size:7pt;">www.swisspost.ch/postcardcreator
+                        </span>
+                    </p>
+                </body>
+            </html>
+        </foreignObject>
+    </g>
+    <g id="fixed-parts" class="layer non-editable">
+        <line x1="69.5" y1="50" x2="69.5" y2="90" style="stroke:black; stroke-width:1.2"/>
+    </g>
+    <g id="replaced-parts" class="layer non-editable" font-size="3.5278" style="fill:black">
+        <!-- 8pt => 8 * 25.4 / 72 => 2.8222mm -->
+        <!-- 8pt * 1.2 => mm => 3.3866mm -->
+        <text id="sender" font-size="2.8222" transform="matrix(1 0 0 1 73 39)">
+            <tspan x="0" dy="2.8222">Schweizerische Post, PostMail, DirectFactory,</tspan>
+            <tspan x="0" dy="3.3866">Viktoriastrasse 21, 3030 Bern</tspan>
+        </text>
+        <path d="M 73,47 L 133,47" style="stroke:black; stroke-width:0.25" id="sender-line"/>
+        <!-- 10pt => 10 * 25.4 / 72 => 3.5278mm -->
+        <!-- 10pt * 1.2 => mm => 4.2234mm -->
+        <text id="recipient" class="pp" transform="matrix(1 0 0 1 73 52)">
+            <tspan x="0" dy="3.5278">{first_name} {last_name}</tspan>
+            <tspan x="0" dy="4.2234">{company} {company_addition}</tspan>
+            <tspan x="0" dy="4.2234">{street}</tspan>
+            <tspan x="0" dy="4.2234">{zip_code} {place}</tspan>
+        </text>
+        <g id="recipient-lines" class="no-pp webstamp" transform="matrix(1 0 0 1 73 52)" visibility="hidden"
+           style="stroke:black; stroke-width:0.1; stroke-dasharray:0.4">
+            <line x1="0" y1="9" x2="60" y2="9"/>
+            <line x1="0" y1="18" x2="60" y2="18"/>
+            <line x1="0" y1="27" x2="60" y2="27"/>
+            <line x1="0" y1="36" x2="60" y2="36"/>
+        </g>
+        <image xlink:href="classpath:/svg/frankierzone-standard.svg" x="73" y="0" width="75" height="38"
+               class="inline"/>
+        <!-- Show directfactory URL only when Webstamp is used, otherwise it is found in the PP stamp -->
+        <text id="df-url" class="webstamp no-pp" transform="matrix(0 1 -1 0 68 5)" font-size="2.4" style
+                ="fill:gray" visibility="hidden">www.post.ch/directfactory
+        </text>
+    </g>
+    <g id="overlay" class="layer non-editable edit-help">
+        <!--
+        <g style="fill:none; stroke:black; stroke-width:0.1; stroke-dasharray:2,2">
+          <use xlink:href="#recommended-userarea-back"/>
+        </g>
+        <g style="fill:none; stroke:black; stroke-width:0.1">
+          <use xlink:href="#userarea-back"/>
+        </g>
+        -->
+        <use xlink:href="#fadeout-userarea-back" style="fill:#DDDDDD; stroke:none; opacity:0.6"/>
+        <text x="0" y="107.6" font-size="3">Beschnittzone / Zone de Coupure / Zona della sezione / Trimming
+            zone
+        </text>
+        <text x="10" y="99" font-size="3">Zone kann nicht genutzt werden.</text>
+        <text x="0" y="112.0" font-size="3" style="fill:#555555; font-style: italic">
+            <tspan x="0" y="112.0">Wenn Sie weisse Randstreifen vermeiden wollen, ziehen Sie Ihr Bild ï¿½ber
+                die graue Beschnittzone.
+            </tspan>
+            <tspan x="0" y="116.0">Si vous souhaitez ï¿½viter les marges blanches, dï¿½placez votre image sur
+                la zone de dï¿½bord grise.
+            </tspan>
+            <tspan x="0" y="120.0">Se non si desidera la cornice bianca, trascinare lï¿½immagine sullï¿½area
+                di ritaglio grigia.
+            </tspan>
+            <tspan x="0" y="124.0">If you want to avoid white margin strips, drag your image over the grey
+                bleed area.
+            </tspan>
+        </text>
+    </g>
+</svg>
