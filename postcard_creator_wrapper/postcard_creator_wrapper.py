@@ -46,6 +46,13 @@ class Token(object):
         self.token_fetched_at = None
         self.cache_token = False
 
+    def has_valid_credentials(self, username, password):
+        try:
+            self.fetch_token(username, password)
+            return True
+        except Exception:
+            return False
+
     def fetch_token(self, username, password):
         if username is None or password is None:
             raise Exception('No username/ password given')
@@ -76,7 +83,7 @@ class Token(object):
 
         except Exception:
             raise Exception(
-                'Could not get access_token. Something broke. set debug/trace=True to debug why\n' + response.text)
+                'Could not get access_token. Something broke. set Debug.debug/trace=True to debug why\n' + response.text)
 
         Debug.log(' username/password authentication successful')
 
@@ -107,7 +114,8 @@ class Token(object):
         saml_response = soup.find('input', {'name': 'SAMLResponse'})
 
         if saml_response is None or saml_response.get('value') is None:
-            raise Exception('The host site very likely changed and broke this API. set debug/trace=True to debug')
+            raise Exception('Username/password authentication failed. '
+                            'Are your credentials valid?. set Debug.debug/trace=True for more information')
 
         return saml_response.get('value')
 
@@ -245,7 +253,8 @@ class PostcardCreatorWrapper(object):
         Debug.trace_request(response)
 
         if response.status_code not in [200, 201, 204]:
-            raise Exception(f'Error in request {method} {url}. status_code: {response.status_code}, response:\n{response.text}')
+            raise Exception(
+                f'Error in request {method} {url}. status_code: {response.status_code}, response:\n{response.text}')
 
         return response
 
