@@ -182,7 +182,7 @@ class Postcard(object):
             raise Exception('Not all required attributes in sender set')
 
     def get_default_svg_page_1(self, user_id):
-        file_name = pkg_resources.resource_string(__name__, '/'.join('page_2.svg'))
+        file_name = pkg_resources.resource_string(__name__, '/'.join('page_1.svg'))
         f = codecs.open(file_name, 'r')
         svg = f.read()
 
@@ -226,47 +226,39 @@ class PostcardCreatorWrapper(object):
             'Authorization': f'Bearer {self.token.token}'
         }
 
-    def _do_op(self, method, endpoint, params=None, data=None, json=None, files=None, headers=None):
+    def _do_op(self, method, endpoint, **kwargs):
         if not endpoint.endswith('/'):
             endpoint += '/'
+
         url = self.host + endpoint
+        if 'headers' not in kwargs or kwargs['headers'] is None:
+            kwargs['headers'] = self._get_headers()
 
-        if headers is None:
-            headers = self._get_headers()
-
-        rest_metod = getattr(self.session, method)
         Debug.log(f' {method}: {url}')
-
-        response = rest_metod(url, params=params, data=data, json=json, headers=headers, files=files)
+        response = self.session.request(method, url, **kwargs)
         Debug.debug_request(response)
+
         if response.status_code not in [200, 201, 204]:
-            raise Exception(f'Error in request {url}. status_code: {response.status_code}, response: {response.text}')
+            raise Exception(f'Error in request {method} {url}. status_code: {response.status_code}, response:\n{response.text}')
+
         return response
-
-    def do_get(self, endpoint, params=None, headers=None):
-        return self._do_op('get', endpoint=endpoint, params=params, headers=headers)
-
-    def do_post(self, endpoint, params=None, data=None, json=None, files=None, headers=None):
-        return self._do_op('post', endpoint=endpoint, params=params, data=data, json=json, files=files, headers=headers)
-
-    def do_put(self, endpoint, params=None, data=None, json=None, files=None, headers=None):
-        return self._do_op('put', endpoint=endpoint, params=params, data=data, json=json, files=files, headers=headers)
 
     def get_user_info(self):
         endpoint = '/users/current'
-        return self.do_get(endpoint).json()
+
+        return self._do_op('get', endpoint).json()
 
     def get_billing_saldo(self):
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/billingOnlineAccountSaldo'
 
-        return self.do_get(endpoint).json()
+        return self._do_op('get', endpoint).json()
 
     def get_quota(self):
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/quota'
 
-        return self.do_get(endpoint).json()
+        return self._do_op('get', endpoint).json()
 
     def has_free_postcard(self):
         return self.get_quota()['available']
@@ -293,13 +285,12 @@ class PostcardCreatorWrapper(object):
         endpoint = f'/users/{user["userId"]}/mailings'
 
         mailing_payload = {
-            'name': f'Mobile App Mailing {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}',
-            # 2017-05-28 17:27
+            'name': f'Mobile App Mailing {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}',  # 2017-05-28 17:27
             'addressFormat': 'PERSON_FIRST',
             'paid': False
         }
 
-        mailing_response = self.do_post(endpoint, json=mailing_payload)
+        mailing_response = self._do_op('post', endpoint, json=mailing_payload)
         return mailing_response.headers['Location'].partition('mailings/')[2]
 
     def _upload_asset(self, user, postcard):
@@ -313,18 +304,22 @@ class PostcardCreatorWrapper(object):
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
-        return self.do_post(endpoint, files=files, headers=headers)
+
+        return self._do_op('post', endpoint, files=files, headers=headers)
 
     def _set_card_recipient(self, user_id, card_id, postcard):
         endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
-        return self.do_put(endpoint, json=postcard.recipient.to_json())
+
+        return self._do_op('put', endpoint, json=postcard.recipient.to_json())
 
     def _set_svg_page1(self, user_id, card_id, postcard):
         endpoint = f'/users/{user_id}/mailings/{card_id}/pages/1'
+
         headers = self._get_headers()
         headers['Origin'] = 'file://'
         headers['Content-Type'] = 'image/svg+xml'
-        return self.do_put(endpoint, data=postcard.get_default_svg_page_1(user_id=user_id), headers=headers)
+
+        return self._do_op('put', endpoint, data=postcard.get_default_svg_page_1(user_id=user_id), headers=headers)
 
     def _set_svg_page2(self, user_id, card_id, postcard):
         endpoint = f'/users/{user_id}/mailings/{card_id}/pages/2'
@@ -333,22 +328,13 @@ class PostcardCreatorWrapper(object):
         headers['Origin'] = 'file://'
         headers['Content-Type'] = 'image/svg+xml'
 
-        return self.do_put(endpoint, data=postcard.get_default_svg_page_2(), headers=headers)
+        return self._do_op('put', endpoint, data=postcard.get_default_svg_page_2(), headers=headers)
 
     def _do_order(self, user_id, card_id):
         endpoint = f'/users/{user_id}/mailings/{card_id}/order'
-        return self.do_post(endpoint, json={})
+
+        return self._do_op('post', endpoint, json={})
 
 
 if __name__ == '__main__':
-    Debug.debug = True
-    Debug.trace = True
-
-    token = Token()
-    token.fetch_token(username='', password='')
-    recipient = Recipient(prename='', lastname='', street='', place='', zip_code=0000)
-    sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
-    card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
-
-    w = PostcardCreatorWrapper(token)
-    w.send_free_card(postcard=card)
+    print()
