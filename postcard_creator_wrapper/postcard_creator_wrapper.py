@@ -124,8 +124,7 @@ class Sender(object):
         self.company = company
 
     def is_valid(self):
-        return all(field is not None and field is not '' for field in
-                   [self.prename, self.lastname, self.street, self.zip_code, self.place])
+        return all(field for field in [self.prename, self.lastname, self.street, self.zip_code, self.place])
 
 
 class Recipient(object):
