@@ -22,7 +22,7 @@ class Debug(object):
             logger.info(msg)
 
     @staticmethod
-    def debug_request(response):
+    def trace_request(response):
         if Debug.trace:
             data = dump.dump_all(response)
             try:
@@ -51,7 +51,7 @@ class Token(object):
             raise Exception('No username/ password given')
 
         if self.cache_token:
-            tmp_dir = tempfile.gettempdir() # TODO, option to cache token
+            tmp_dir = tempfile.gettempdir()  # TODO, option to cache token
 
         session = requests.Session()
         payload = {
@@ -60,7 +60,8 @@ class Token(object):
         }
 
         response = session.post(url=self.token_url, headers=self.headers, data=payload)
-        Debug.debug_request(response)
+        Debug.log(f' post {self.token_url}')
+        Debug.trace_request(response)
 
         try:
             access_token = json.loads(response.text)
@@ -75,7 +76,9 @@ class Token(object):
 
         except Exception:
             raise Exception(
-                'Could not get access_token. Something broke. set debug=True to debug why\n' + response.text)
+                'Could not get access_token. Something broke. set debug/trace=True to debug why\n' + response.text)
+
+        Debug.log(' username/password authentication successful')
 
     def _get_saml_response(self, session, username, password):
         url = f'{self.base}/SAML/IdentityProvider/'
@@ -86,13 +89,16 @@ class Token(object):
             'confirmLogin': ''
         }
         response1 = session.get(url=url + query, headers=self.headers)
-        Debug.debug_request(response1)
+        Debug.trace_request(response1)
+        Debug.log(f' get {url}')
 
         response2 = session.post(url=url + query, headers=self.headers, data=data)
-        Debug.debug_request(response2)
+        Debug.trace_request(response2)
+        Debug.log(f' post {url}')
 
         response3 = session.post(url=url + query, headers=self.headers)
-        Debug.debug_request(response3)
+        Debug.trace_request(response3)
+        Debug.log(f' post {url}')
 
         if any(e.status_code is not 200 for e in [response1, response2, response3]):
             raise Exception('Wrong user credentials')
@@ -101,7 +107,7 @@ class Token(object):
         saml_response = soup.find('input', {'name': 'SAMLResponse'})
 
         if saml_response is None or saml_response.get('value') is None:
-            raise Exception('The host site very likely changed and broke this API. set debug=True to debug')
+            raise Exception('The host site very likely changed and broke this API. set debug/trace=True to debug')
 
         return saml_response.get('value')
 
@@ -236,7 +242,7 @@ class PostcardCreatorWrapper(object):
 
         Debug.log(f' {method}: {url}')
         response = self.session.request(method, url, **kwargs)
-        Debug.debug_request(response)
+        Debug.trace_request(response)
 
         if response.status_code not in [200, 201, 204]:
             raise Exception(f'Error in request {method} {url}. status_code: {response.status_code}, response:\n{response.text}')
@@ -337,4 +343,14 @@ class PostcardCreatorWrapper(object):
 
 
 if __name__ == '__main__':
-    print()
+    Debug.debug = True
+    Debug.trace = False
+
+    token = Token()
+    token.fetch_token(username='', password='')
+    recipient = Recipient(prename='', lastname='', street='', place='', zip_code=0000)
+    sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
+    card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
+
+    w = PostcardCreatorWrapper(token)
+    w.send_free_card(postcard=card)
