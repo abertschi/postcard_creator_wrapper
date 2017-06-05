@@ -78,7 +78,7 @@ class Token(object):
                 'Could not get access_token. Something broke. set debug=True to debug why\n' + response.text)
 
     def _get_saml_response(self, session, username, password):
-        url = '{}/SAML/IdentityProvider/'.format(self.base)
+        url = f'{self.base}/SAML/IdentityProvider/'
         query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
         data = {
             'isiwebuserid': username,
@@ -124,8 +124,7 @@ class Sender(object):
         self.company = company
 
     def is_valid(self):
-        return all(field is not None and field is not '' for field in
-                   [self.prename, self.lastname, self.street, self.zip_code, self.place])
+        return all(field for field in [self.prename, self.lastname, self.street, self.zip_code, self.place])
 
 
 class Recipient(object):
@@ -140,8 +139,7 @@ class Recipient(object):
         self.company_addition = company_addition
 
     def is_valid(self):
-        return all(field is not None and field is not '' for field in
-                   [self.prename, self.lastname, self.street, self.zip_code, self.place])
+        return all(field for field in [self.prename, self.lastname, self.street, self.zip_code, self.place])
 
     def to_json(self):
         return {'recipientFields': [
@@ -220,30 +218,29 @@ class PostcardCreatorWrapper(object):
 
         self.token = token
         self.session = requests.Session()
-
         self.host = 'https://postcardcreator.post.ch/rest/2.1'
 
     def _get_headers(self):
         return {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; LG-D855 Build/M4B30X; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
-            'Authorization': 'Bearer {}'.format(self.token.token)
+            'Authorization': f'Bearer {self.token.token}'
         }
 
     def _do_op(self, method, endpoint, params=None, data=None, json=None, files=None, headers=None):
-        if not endpoint.endswith('/'): endpoint += '/'
+        if not endpoint.endswith('/'):
+            endpoint += '/'
         url = self.host + endpoint
 
         if headers is None:
             headers = self._get_headers()
 
         rest_metod = getattr(self.session, method)
-        Debug.log(' {}: {}'.format(method, url))
+        Debug.log(f' {method}: {url}')
 
         response = rest_metod(url, params=params, data=data, json=json, headers=headers, files=files)
         Debug.debug_request(response)
         if response.status_code not in [200, 201, 204]:
-            raise Exception('Error in request {}. status_code: {}, response: {}'
-                            .format(url, response.status_code, response.text))
+            raise Exception(f'Error in request {url}. status_code: {response.status_code}, response: {response.text}')
         return response
 
     def do_get(self, endpoint, params=None, headers=None):
@@ -261,13 +258,13 @@ class PostcardCreatorWrapper(object):
 
     def get_billing_saldo(self):
         user = self.get_user_info()
-        endpoint = '/users/{}/billingOnlineAccountSaldo'.format(user['userId'])
+        endpoint = f'/users/{user["userId"]}/billingOnlineAccountSaldo'
 
         return self.do_get(endpoint).json()
 
     def get_quota(self):
         user = self.get_user_info()
-        endpoint = '/users/{}/quota'.format(user['userId'])
+        endpoint = f'/users/{user["userId"]}/quota'
 
         return self.do_get(endpoint).json()
 
@@ -290,12 +287,13 @@ class PostcardCreatorWrapper(object):
         self._set_svg_page1(user_id, card_id, postcard)
         self._set_svg_page2(user_id, card_id, postcard)
         response = self._do_order(user_id, card_id)
+        return response
 
     def _create_card(self, user):
-        endpoint = '/users/{}/mailings'.format(user['userId'])
+        endpoint = f'/users/{user["userId"]}/mailings'
 
         mailing_payload = {
-            'name': 'Mobile App Mailing {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M')),
+            'name': f'Mobile App Mailing {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}',
             # 2017-05-28 17:27
             'addressFormat': 'PERSON_FIRST',
             'paid': False
@@ -305,33 +303,31 @@ class PostcardCreatorWrapper(object):
         return mailing_response.headers['Location'].partition('mailings/')[2]
 
     def _upload_asset(self, user, postcard):
-        endpoint = '/users/{}/assets'.format(user['userId'])
+        endpoint = f'/users/{user["userId"]}/assets'
 
         bytes = postcard.get_picture_as_bytes()
         files = {
             'title': (None, 'Title of image'),
             'asset': ('asset.png', bytes, 'image/jpeg')
         }
+
         headers = self._get_headers()
         headers['Origin'] = 'file://'
         return self.do_post(endpoint, files=files, headers=headers)
 
     def _set_card_recipient(self, user_id, card_id, postcard):
-        endpoint = '/users/{}/mailings/{}/recipients'.format(user_id, card_id)
-
+        endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
         return self.do_put(endpoint, json=postcard.recipient.to_json())
 
     def _set_svg_page1(self, user_id, card_id, postcard):
-        endpoint = '/users/{}/mailings/{}/pages/1'.format(user_id, card_id)
-
+        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/1'
         headers = self._get_headers()
         headers['Origin'] = 'file://'
         headers['Content-Type'] = 'image/svg+xml'
-
         return self.do_put(endpoint, data=postcard.get_default_svg_page_1(user_id=user_id), headers=headers)
 
     def _set_svg_page2(self, user_id, card_id, postcard):
-        endpoint = '/users/{}/mailings/{}/pages/2'.format(user_id, card_id)
+        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/2'
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
@@ -340,7 +336,7 @@ class PostcardCreatorWrapper(object):
         return self.do_put(endpoint, data=postcard.get_default_svg_page_2(), headers=headers)
 
     def _do_order(self, user_id, card_id):
-        endpoint = '/users/{}/mailings/{}/order'.format(user_id, card_id)
+        endpoint = f'/users/{user_id}/mailings/{card_id}/order'
         return self.do_post(endpoint, json={})
 
 
