@@ -259,19 +259,16 @@ class PostcardCreatorWrapper(object):
 
     def get_user_info(self):
         endpoint = '/users/current'
-
         return self._do_op('get', endpoint).json()
 
     def get_billing_saldo(self):
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/billingOnlineAccountSaldo'
-
         return self._do_op('get', endpoint).json()
 
     def get_quota(self):
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/quota'
-
         return self._do_op('get', endpoint).json()
 
     def has_free_postcard(self):
@@ -325,12 +322,10 @@ class PostcardCreatorWrapper(object):
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
-
         return self._do_op('post', endpoint, files=files, headers=headers)
 
     def _set_card_recipient(self, user_id, card_id, postcard):
         endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
-
         return self._do_op('put', endpoint, json=postcard.recipient.to_json())
 
     def _set_svg_page1(self, user_id, card_id, postcard):
@@ -339,7 +334,6 @@ class PostcardCreatorWrapper(object):
         headers = self._get_headers()
         headers['Origin'] = 'file://'
         headers['Content-Type'] = 'image/svg+xml'
-
         return self._do_op('put', endpoint, data=postcard.get_default_svg_page_1(user_id=user_id), headers=headers)
 
     def _set_svg_page2(self, user_id, card_id, postcard):
@@ -348,12 +342,10 @@ class PostcardCreatorWrapper(object):
         headers = self._get_headers()
         headers['Origin'] = 'file://'
         headers['Content-Type'] = 'image/svg+xml'
-
         return self._do_op('put', endpoint, data=postcard.get_default_svg_page_2(), headers=headers)
 
     def _do_order(self, user_id, card_id):
         endpoint = f'/users/{user_id}/mailings/{card_id}/order'
-
         return self._do_op('post', endpoint, json={})
 
 
