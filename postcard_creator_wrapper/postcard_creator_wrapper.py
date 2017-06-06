@@ -28,7 +28,9 @@ class Debug(object):
             try:
                 logger.info(data.decode())
             except Exception:
-                logger.error(response)
+                data = str(data).replace('\\r\\n', '\r\n')
+                logger.info("Failed to print request/response decoded. Printing it as byte string instead")
+                logger.info(data)
 
 
 class Token(object):
@@ -196,33 +198,27 @@ class Postcard(object):
             raise Exception('Not all required attributes in sender set')
 
     def get_default_svg_page_1(self, user_id):
-        file_name = pkg_resources.resource_string(__name__, '/'.join('page_1.svg'))
-        f = codecs.open(file_name, 'r')
-        svg = f.read()
-
-        svg = svg.replace('{user_id}', str(user_id))
-        return svg
+        svg = pkg_resources.resource_string(__name__, 'page_1.svg')
+        svg = svg.decode('utf-8')
+        return svg.replace('{user_id}', str(user_id))
 
     def get_default_svg_page_2(self):
-        file_name = pkg_resources.resource_string(__name__, '/'.join('page_2.svg'))
-        f = codecs.open(file_name, 'r')
-        svg = f.read()
+        svg = pkg_resources.resource_string(__name__, 'page_2.svg')
+        svg = svg.decode('utf-8')
 
-        svg = svg.replace('{first_name}', self.recipient.prename)
-        svg = svg.replace('{last_name}', self.recipient.lastname)
-        svg = svg.replace('{company}', self.recipient.company)
-        svg = svg.replace('{company_addition}', self.recipient.company_addition)
-        svg = svg.replace('{street}', self.recipient.street)
-        svg = svg.replace('{zip_code}', str(self.recipient.zip_code))
-        svg = svg.replace('{place}', self.recipient.place)
-
-        svg = svg.replace('{sender_company}', self.sender.company)
-        svg = svg.replace('{sender_name}', self.sender.prename + ' ' + self.sender.lastname)
-        svg = svg.replace('{sender_adress}', self.sender.street)
-        svg = svg.replace('{sender_zip_code}', str(self.sender.zip_code))
-        svg = svg.replace('{sender_place}', self.sender.place)
-
-        return svg
+        return svg \
+            .replace('{first_name}', self.recipient.prename) \
+            .replace('{last_name}', self.recipient.lastname) \
+            .replace('{company}', self.recipient.company) \
+            .replace('{company_addition}', self.recipient.company_addition) \
+            .replace('{street}', self.recipient.street) \
+            .replace('{zip_code}', str(self.recipient.zip_code)) \
+            .replace('{place}', self.recipient.place) \
+            .replace('{sender_company}', self.sender.company) \
+            .replace('{sender_name}', self.sender.prename + ' ' + self.sender.lastname) \
+            .replace('{sender_adress}', self.sender.street) \
+            .replace('{sender_zip_code}', str(self.sender.zip_code)) \
+            .replace('{sender_place}', self.sender.place)
 
 
 class PostcardCreatorWrapper(object):
@@ -352,8 +348,8 @@ class PostcardCreatorWrapper(object):
 
 
 if __name__ == '__main__':
+    Debug.trace = True
     Debug.debug = True
-    Debug.trace = False
 
     token = Token()
     token.fetch_token(username='', password='')
