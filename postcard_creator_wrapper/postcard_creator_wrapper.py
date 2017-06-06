@@ -216,9 +216,10 @@ class Postcard(object):
             .replace('{place}', self.recipient.place) \
             .replace('{sender_company}', self.sender.company) \
             .replace('{sender_name}', self.sender.prename + ' ' + self.sender.lastname) \
-            .replace('{sender_adress}', self.sender.street) \
+            .replace('{sender_address}', self.sender.street) \
             .replace('{sender_zip_code}', str(self.sender.zip_code)) \
-            .replace('{sender_place}', self.sender.place)
+            .replace('{sender_place}', self.sender.place) \
+            .replace('{message}', self.message)  # TODO This is put into html block. Check if newlines need to be encoded as html tags
 
 
 class PostcardCreatorWrapper(object):

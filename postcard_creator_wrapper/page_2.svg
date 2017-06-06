@@ -32,7 +32,7 @@
         </clipPath>
         <text id="senderField-company">{sender_company}</text>
         <text id="senderField-name">{sender_name}</text>
-        <text id="senderField-address">{sender_adress}</text>
+        <text id="senderField-address">{sender_address}</text>
         <text id="senderField-zipAndPlace">{sender_zip_code} {sender_place}</text>
         <text id="senderField-country"></text>
     </defs>
@@ -50,29 +50,25 @@
             <use xlink:href="#userarea-back-bleed"/>
         </g>
     </g>
-    <g id="clip-test" class="layer non-editable debug" visibility="hidden" clip-path="url(#preview-clip
-)">
+    <g id="clip-test" class="layer non-editable debug" visibility="hidden" clip-path="url(#preview-clip)">
         <rect x="-3" y="-3" width="154" height="111" style="fill:#ddddff; stroke:none"/>
     </g>
-    <g
-            id="user-area"
+    <g id="user-area"
             class="layer user-area"
             clip-path="url(#user-zone)">
         <!-- center text vertically ....#issue PCC-496 remove Advertisement in case of paid postcards /
     center text vertically in SVG-->
         <foreignObject requiredExtensions="http://www.w3.org/1999/xhtml" x="0" y="0" width="61" height="63"
                        transform="matrix(1 0 0 1 5 34.375)">
-            <html
-                    xmlns="http://www.w3.org/1999/xhtml"
+            <html xmlns="http://www.w3.org/1999/xhtml"
                     xmlns:pers="http://post.ch/directfactory/personalization"
                     xmlns:class="my:class">
                 <body>
                     <p>
-                        <span style="color:#000000;font-family:'Arial';font-size:10pt;font-style:normal;font-weight
-:normal;text-align:start;text-decoration:none;">
+                        <span style="color:#000000;font-family:'Arial';font-size:10pt;font-style:normal;font-weight:normal;text-align:start;text-decoration:none;">
                             <p>
-                                <span style="font-family:'Arial';font-size:10pt;"
-                                >Yo
+                                <span style="font-family:'Arial';font-size:10pt;">
+                                    {message}
                                 </span>
                             </p>
                         </span>
@@ -82,33 +78,28 @@
         </foreignObject>
         <!-- promotion text here....#issue PCC-496 remove Advertisement in case of paid postcards / center
       text vertically in SVG-->
-        <rect style="stroke-linecap:butt;fill-opacity:1;font-family:Frutiger;stroke-linejoin:miter;stroke-width
-:0;stroke:#ffcc00;stroke-opacity:0;fill:#ffcc00;" x="-3" y="68" width="69" height="22"/>
+        <rect style="stroke-linecap:butt;fill-opacity:1;font-family:Frutiger;stroke-linejoin:miter;stroke-width:0;stroke:#ffcc00;stroke-opacity:0;fill:#ffcc00;" x="-3" y="68" width="69" height="22"/>
         <foreignObject
-                requiredExtensions="http://www.w3.org/1999/xhtml" x="0" y="0" width="61" height="14" transform="matrix
-(1 0 0 1 5 70)">
+                requiredExtensions="http://www.w3.org/1999/xhtml" x="0" y="0" width="61" height="14" transform="matrix(1 0 0 1 5 70)">
             <html xmlns="http://www.w3.org/1999/xhtml" xmlns:class="my:class"
                   xmlns:pers="http://post.ch/directfactory/personalization">
                 <body>
                     <p>
-                        <span style="color:#000000;font-family:'Frutiger 45
- Light';font-size:7pt;font-style:normal;font-weight:normal;text-align:start;text-decoration:none;">Create
-                            and send real postcards by smartphone. It&#39;s easy with the PostCard Creator App. Download
-                            it now
-                            free of charge.
+                        <span style="color:#000000;font-family:'Frutiger 45 Light';font-size:7pt;font-style:normal;font-weight:normal;text-align:start;text-decoration:none;">
+                            Create and send real postcards by smartphone.
+                            It&#39;s easy with the PostCard Creator App. Download it now free of charge.
                         </span>
                     </p>
                 </body>
             </html>
         </foreignObject>
-        <foreignObject requiredExtensions="http://www
-.w3.org/1999/xhtml" x="0" y="0" width="61" height="3.4" transform="matrix(1 0 0 1 5 84.6)">
-            <html xmlns
-                          ="http://www.w3.org/1999/xhtml" xmlns:class="my:class"
+        <foreignObject requiredExtensions="http://www.w3.org/1999/xhtml" x="0" y="0" width="61" height="3.4" transform="matrix(1 0 0 1 5 84.6)">
+            <html xmlns="http://www.w3.org/1999/xhtml" xmlns:class="my:class"
                   xmlns:pers="http://post.ch/directfactory/personalization">
                 <body>
                     <p>
-                        <span style="font-family:'Frutiger 45 Light';font-size:7pt;">www.swisspost.ch/postcardcreator
+                        <span style="font-family:'Frutiger 45 Light';font-size:7pt;">
+                            www.swisspost.ch/postcardcreator
                         </span>
                     </p>
                 </body>
@@ -134,8 +125,7 @@
             <tspan x="0" dy="4.2234">{street}</tspan>
             <tspan x="0" dy="4.2234">{zip_code} {place}</tspan>
         </text>
-        <g id="recipient-lines" class="no-pp webstamp" transform="matrix(1 0 0 1 73 52)" visibility="hidden"
-           style="stroke:black; stroke-width:0.1; stroke-dasharray:0.4">
+        <g id="recipient-lines" class="no-pp webstamp" transform="matrix(1 0 0 1 73 52)" visibility="hidden" style="stroke:black; stroke-width:0.1; stroke-dasharray:0.4">
             <line x1="0" y1="9" x2="60" y2="9"/>
             <line x1="0" y1="18" x2="60" y2="18"/>
             <line x1="0" y1="27" x2="60" y2="27"/>
@@ -144,8 +134,8 @@
         <image xlink:href="classpath:/svg/frankierzone-standard.svg" x="73" y="0" width="75" height="38"
                class="inline"/>
         <!-- Show directfactory URL only when Webstamp is used, otherwise it is found in the PP stamp -->
-        <text id="df-url" class="webstamp no-pp" transform="matrix(0 1 -1 0 68 5)" font-size="2.4" style
-                ="fill:gray" visibility="hidden">www.post.ch/directfactory
+        <text id="df-url" class="webstamp no-pp" transform="matrix(0 1 -1 0 68 5)" font-size="2.4" style="fill:gray" visibility="hidden">
+            www.post.ch/directfactory
         </text>
     </g>
     <g id="overlay" class="layer non-editable edit-help">
@@ -158,16 +148,14 @@
         </g>
         -->
         <use xlink:href="#fadeout-userarea-back" style="fill:#DDDDDD; stroke:none; opacity:0.6"/>
-        <text x="0" y="107.6" font-size="3">Beschnittzone / Zone de Coupure / Zona della sezione / Trimming
-            zone
+        <text x="0" y="107.6" font-size="3">Beschnittzone / Zone de Coupure / Zona della sezione / Trimming zone
         </text>
         <text x="10" y="99" font-size="3">Zone kann nicht genutzt werden.</text>
         <text x="0" y="112.0" font-size="3" style="fill:#555555; font-style: italic">
-            <tspan x="0" y="112.0">Wenn Sie weisse Randstreifen vermeiden wollen, ziehen Sie Ihr Bild ï¿½ber
-                die graue Beschnittzone.
+            <tspan x="0" y="112.0">Wenn Sie weisse Randstreifen vermeiden wollen, ziehen Sie Ihr Bild über die graue Beschnittzone.
             </tspan>
-            <tspan x="0" y="116.0">Si vous souhaitez ï¿½viter les marges blanches, dï¿½placez votre image sur
-                la zone de dï¿½bord grise.
+            <tspan x="0" y="116.0">Si vous souhaitez éviter les marges blanches, déplacez votre image sur
+                la zone de débord grise.
             </tspan>
             <tspan x="0" y="120.0">Se non si desidera la cornice bianca, trascinare lï¿½immagine sullï¿½area
                 di ritaglio grigia.

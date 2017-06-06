@@ -13,8 +13,7 @@
     <rect id="userarea-front" x="0" y="0" width="148" height="105"/>
     <rect id="userarea-front-bleed" x="-3" y="-3" width="154" height="111"/>
     <rect id="recommended-userarea-front" x="5" y="5" width="138" height="95"/>
-    <path id="fadeout-userarea-front"
-      d="M -3,-3 L 151,-3 L 151,108 L -3,108 z M 0,0 L 0,105 L 148,105 L 148,0 z"/>
+    <path id="fadeout-userarea-front" d="M -3,-3 L 151,-3 L 151,108 L -3,108 z M 0,0 L 0,105 L 148,105 L 148,0 z"/>
     <clipPath id="user-zone">
       <use xlink:href="#userarea-front-bleed"/>
     </clipPath>
@@ -26,8 +25,7 @@
     <use xlink:href="#userarea-front-bleed" style="fill:#DDDDDD"/>
     <use xlink:href="#userarea-front" style="fill:white; stroke:none"/>
   </g>
-  <g id="clip-test" class="layer non-editable debug" visibility="hidden" clip-path="url(#preview-clip
-)">
+  <g id="clip-test" class="layer non-editable debug" visibility="hidden" clip-path="url(#preview-clip)">
     <rect x="-3" y="-3" width="154" height="111" style="fill:#ddddff; stroke:none"/>
   </g>
   <g id="user-area" class="layer user-area" clip-path="url(#user-zone)">
@@ -51,17 +49,22 @@
     </g>
     -->
     <use xlink:href="#fadeout-userarea-front" style="fill:#DDDDDD; stroke:none; opacity:0.6"/>
-    <text x="0" y="107.6" font-size="3">Beschnittzone / Zone de Coupure / Zona della sezione / Trimming
- zone</text>
+    <text x="0" y="107.6" font-size="3">
+        Beschnittzone / Zone de Coupure / Zona della sezione / Trimming zone
+    </text>
     <text x="0" y="112.0" font-size="3" style="fill:#555555; font-style: italic">
-      <tspan x="0" y="112.0">Wenn Sie weisse Randstreifen vermeiden wollen, ziehen Sie Ihr Bild ï¿½ber
- die graue Beschnittzone.</tspan>
-      <tspan x="0" y="116.0">Si vous souhaitez ï¿½viter les marges blanches, dï¿½placez votre image sur
- la zone de dï¿½bord grise.</tspan>
-      <tspan x="0" y="120.0">Se non si desidera la cornice bianca, trascinare lï¿½immagine sullï¿½area
- di ritaglio grigia.</tspan>
-      <tspan x="0" y="124.0">If you want to avoid white margin strips, drag your image over the grey
- bleed area.</tspan>
+      <tspan x="0" y="112.0">
+          Wenn Sie weisse Randstreifen vermeiden wollen, ziehen Sie Ihr Bild über die graue Beschnittzone.
+      </tspan>
+      <tspan x="0" y="116.0">
+          Si vous souhaitez éviter les marges blanches, déplacez votre image sur la zone de débord grise.
+      </tspan>
+      <tspan x="0" y="120.0">
+          Se non si desidera la cornice bianca, trascinare lï¿½immagine sullï¿½area di ritaglio grigia.
+      </tspan>
+      <tspan x="0" y="124.0">
+          If you want to avoid white margin strips, drag your image over the grey bleed area.
+      </tspan>
     </text>
   </g>
 </svg>
