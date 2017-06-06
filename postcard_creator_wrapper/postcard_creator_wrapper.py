@@ -11,7 +11,6 @@ import pkg_resources
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('postcard-creator-wrapper')
 
-
 class Debug(object):
     debug = False
     trace = False
@@ -37,7 +36,7 @@ class Token(object):
     base = 'https://account.post.ch'
     token_url = 'https://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; LG-D855 Build/M4B30X; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         'Origin': 'https://account.post.ch'
     }
 
@@ -131,13 +130,14 @@ class Token(object):
 
 
 class Sender(object):
-    def __init__(self, prename, lastname, street, zip_code, place, company=''):
+    def __init__(self, prename, lastname, street, zip_code, place, company='', country=''):
         self.prename = prename
         self.lastname = lastname
         self.street = street
         self.zip_code = zip_code
         self.place = place
         self.company = company
+        self.country = country
 
     def is_valid(self):
         return all(field for field in [self.prename, self.lastname, self.street, self.zip_code, self.place])
@@ -219,7 +219,9 @@ class Postcard(object):
             .replace('{sender_address}', self.sender.street) \
             .replace('{sender_zip_code}', str(self.sender.zip_code)) \
             .replace('{sender_place}', self.sender.place) \
-            .replace('{message}', self.message)  # TODO This is put into html block. Check if newlines need to be encoded as html tags
+            .replace('{sender_country}', self.sender.country) \
+            .replace('{message}',
+                     self.message)  # TODO This is put into html block. Check if newlines need to be encoded as html tags
 
 
 class PostcardCreatorWrapper(object):
@@ -228,12 +230,12 @@ class PostcardCreatorWrapper(object):
             raise Exception('No Token given')
 
         self.token = token
-        self.session = requests.Session()
         self.host = 'https://postcardcreator.post.ch/rest/2.1'
+        self._session = requests.Session()
 
     def _get_headers(self):
         return {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; LG-D855 Build/M4B30X; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Authorization': f'Bearer {self.token.token}'
         }
 
@@ -246,7 +248,7 @@ class PostcardCreatorWrapper(object):
             kwargs['headers'] = self._get_headers()
 
         Debug.log(f' {method}: {url}')
-        response = self.session.request(method, url, **kwargs)
+        response = self._session.request(method, url, **kwargs)
         Debug.trace_request(response)
 
         if response.status_code not in [200, 201, 204]:
@@ -275,7 +277,7 @@ class PostcardCreatorWrapper(object):
     def has_free_postcard(self):
         return self.get_quota()['available']
 
-    def send_free_card(self, postcard):
+    def send_free_card(self, postcard, mock_send=False):
         if not self.has_free_postcard():
             raise Exception('Limit of free postcards exceeded. Try again tomorrow at ' + self.get_quota()['next'])
         if postcard is None:
@@ -290,7 +292,14 @@ class PostcardCreatorWrapper(object):
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
         self._set_svg_page1(user_id, card_id, postcard)
         self._set_svg_page2(user_id, card_id, postcard)
-        response = self._do_order(user_id, card_id)
+
+        if not mock_send:
+            response = self._do_order(user_id, card_id)
+            Debug.log('Postcard sent!')
+        else:
+            response = 'postcard was not sent'
+            logger.info('Postcard was not sent. mock_send=True')
+
         return response
 
     def _create_card(self, user):
@@ -349,8 +358,6 @@ class PostcardCreatorWrapper(object):
 
 
 if __name__ == '__main__':
-    Debug.trace = True
-    Debug.debug = True
 
     token = Token()
     token.fetch_token(username='', password='')
@@ -360,3 +367,4 @@ if __name__ == '__main__':
 
     w = PostcardCreatorWrapper(token)
     w.send_free_card(postcard=card)
+
