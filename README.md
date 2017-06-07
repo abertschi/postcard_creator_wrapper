@@ -5,7 +5,7 @@ This project is still in early development. Feedback and support appreciated.
 
 ## Setup / API Usage
 ```python
-w = PostcardCreatorWrapper(token)
+w = PostcardCreator(token)
 w.get_user_info()
 w.get_billing_saldo()
 w.get_quota()
@@ -25,7 +25,7 @@ recipient = Recipient(prename='', lastname='', street='', place='', zip_code=000
 sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
 card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
 
-w = PostcardCreatorWrapper(token)
+w = PostcardCreator(token)
 w.send_free_card(postcard=card)
 ```
 ## Varia
