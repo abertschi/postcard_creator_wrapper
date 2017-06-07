@@ -224,7 +224,7 @@ class Postcard(object):
                      self.message)  # TODO This is put into html block. Check if newlines need to be encoded as html tags
 
 
-class PostcardCreatorWrapper(object):
+class PostcardCreator(object):
     def __init__(self, token=None):
         if token.token is None:
             raise Exception('No Token given')
@@ -357,6 +357,6 @@ if __name__ == '__main__':
     sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
     card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
 
-    w = PostcardCreatorWrapper(token)
+    w = PostcardCreator(token)
     w.send_free_card(postcard=card)
 
