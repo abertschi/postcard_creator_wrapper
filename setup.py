@@ -34,6 +34,7 @@ setup(
     description='A python wrapper around the Rest API of the Swiss Postcard creator',
     packages=['postcard_creator'],
     platforms='any',
+    keywords='postcard creator swiss',
     classifiers=[
         # How mature is this project? Common values are
         #   3 - Alpha
@@ -44,8 +45,6 @@ setup(
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
 
-        # Pick your license as you wish (should match "license" above)
-        'License :: Apache License',
         'Programming Language :: Python :: 3.6',
     ],
     extras_require={
