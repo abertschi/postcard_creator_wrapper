@@ -25,16 +25,14 @@ def find_version(*file_paths):
 
 
 setup(
-    name='postcard_creator_wrapper',
-    version=find_version('postcard_creator_wrapper', '__init__.py'),
+    name='postcard_creator',
+    version=find_version('postcard_creator', '__init__.py'),
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
     install_requires=reqs,
     description='A python wrapper around the Rest API of the Swiss Postcard creator',
-    packages=['postcard_creator_wrapper'],
-    #include_package_data=True,
-    #package_data={'postcard_creator_wrapper': ['*.svg']},
+    packages=['postcard_creator'],
     platforms='any',
     classifiers=[
         # How mature is this project? Common values are

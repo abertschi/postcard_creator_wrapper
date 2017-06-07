@@ -9,7 +9,7 @@ import tempfile
 import pkg_resources
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('postcard-creator-wrapper')
+logger = logging.getLogger('postcard-creator')
 
 class Debug(object):
     debug = False
