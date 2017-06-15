@@ -7,9 +7,12 @@ import datetime
 import codecs
 import tempfile
 import pkg_resources
+from pathlib import Path
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('postcard-creator')
+
 
 class Debug(object):
     debug = False
@@ -39,6 +42,7 @@ class Token(object):
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         'Origin': 'https://account.post.ch'
     }
+    # cache_filename = 'pcc_cache.json'
 
     def __init__(self):
         self.token = None
@@ -54,12 +58,29 @@ class Token(object):
         except Exception:
             return False
 
+    # def store_token_to_cache(self, key, token):
+    #
+    # def check_token_in_cache(self, username, password):
+    #     tmp_dir = tempfile.gettempdir()
+    #     tmp_path = os.path.join(tmp_dir, self.cache_filename)
+    #     tmp_file = Path(tmp_path)
+    #
+    #     if tmp_file.exists():
+    #         cache_content = open(tmp_file, "r").read()
+    #         cache = []
+    #         try:
+    #             cache = json.load(cache_content)
+    #         except Exception:
+    #             return None
+    #
+
+
     def fetch_token(self, username, password):
         if username is None or password is None:
             raise Exception('No username/ password given')
 
-        if self.cache_token:
-            tmp_dir = tempfile.gettempdir()  # TODO, option to cache token
+        # if self.cache_token:
+        #     self.check_token_in_cache(username, password)
 
         session = requests.Session()
         payload = {
@@ -175,15 +196,13 @@ class Recipient(object):
 
 
 class Postcard(object):
-    def __init__(self, picture_location, sender, recipient, message=''):
+    def __init__(self, sender, recipient, picture_stream, message=''):
         self.recipient = recipient
         self.message = message
-        self.picture_location = picture_location
+        self.picture_stream = picture_stream
         self.sender = sender
-
-    def get_picture_as_bytes(self):
-        f = codecs.open(self.picture_location, 'rb')
-        return f.read()
+        self.frontpage_layout = pkg_resources.resource_string(__name__, 'page_1.svg').decode('utf-8')
+        self.backpage_layout = pkg_resources.resource_string(__name__, 'page_2.svg').decode('utf-8')
 
     def is_valid(self):
         return self.recipient is not None \
@@ -197,14 +216,11 @@ class Postcard(object):
         if self.recipient is None or not self.recipient.is_valid():
             raise Exception('Not all required attributes in sender set')
 
-    def get_default_svg_page_1(self, user_id):
-        svg = pkg_resources.resource_string(__name__, 'page_1.svg')
-        svg = svg.decode('utf-8')
-        return svg.replace('{user_id}', str(user_id))
+    def get_frontpage(self, user_id):
+        return self.frontpage_layout.replace('{user_id}', str(user_id))
 
-    def get_default_svg_page_2(self):
-        svg = pkg_resources.resource_string(__name__, 'page_2.svg')
-        svg = svg.decode('utf-8')
+    def get_backpage(self):
+        svg = self.backpage_layout
 
         return svg \
             .replace('{first_name}', self.recipient.prename) \
@@ -287,8 +303,8 @@ class PostcardCreator(object):
 
         self._upload_asset(user, postcard=postcard)
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
-        self._set_svg_page1(user_id, card_id, postcard)
-        self._set_svg_page2(user_id, card_id, postcard)
+        self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(user_id))
+        self._set_svg_page(2, user_id, card_id, postcard.get_backpage())
 
         if not mock_send:
             response = self._do_order(user_id, card_id)
@@ -314,11 +330,13 @@ class PostcardCreator(object):
     def _upload_asset(self, user, postcard):
         endpoint = f'/users/{user["userId"]}/assets'
 
-        bytes = postcard.get_picture_as_bytes()
         files = {
             'title': (None, 'Title of image'),
-            'asset': ('asset.png', bytes, 'image/jpeg')
+            'asset': postcard.picture_stream
         }
+
+        # 'title': (None, 'Title of image'),
+        # 'asset': ('asset.png', bytes, 'image/jpeg')
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
@@ -328,21 +346,13 @@ class PostcardCreator(object):
         endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
         return self._do_op('put', endpoint, json=postcard.recipient.to_json())
 
-    def _set_svg_page1(self, user_id, card_id, postcard):
-        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/1'
+    def _set_svg_page(self, page_number, user_id, card_id, svg_content):
+        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/{page_number}'
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
         headers['Content-Type'] = 'image/svg+xml'
-        return self._do_op('put', endpoint, data=postcard.get_default_svg_page_1(user_id=user_id), headers=headers)
-
-    def _set_svg_page2(self, user_id, card_id, postcard):
-        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/2'
-
-        headers = self._get_headers()
-        headers['Origin'] = 'file://'
-        headers['Content-Type'] = 'image/svg+xml'
-        return self._do_op('put', endpoint, data=postcard.get_default_svg_page_2(), headers=headers)
+        return self._do_op('put', endpoint, data=svg_content, headers=headers)
 
     def _do_order(self, user_id, card_id):
         endpoint = f'/users/{user_id}/mailings/{card_id}/order'
@@ -350,13 +360,4 @@ class PostcardCreator(object):
 
 
 if __name__ == '__main__':
-
-    token = Token()
-    token.fetch_token(username='', password='')
-    recipient = Recipient(prename='', lastname='', street='', place='', zip_code=0000)
-    sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
-    card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
-
-    w = PostcardCreator(token)
-    w.send_free_card(postcard=card)
-
+    None

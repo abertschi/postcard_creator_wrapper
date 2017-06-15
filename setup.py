@@ -47,6 +47,9 @@ setup(
 
         'Programming Language :: Python :: 3.6',
     ],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest'],
     extras_require={
+        'test': ['coverage', 'pytest'],
     }
 )
