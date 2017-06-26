@@ -4,11 +4,6 @@ import json
 from bs4 import BeautifulSoup
 from requests_toolbelt.utils import dump
 import datetime
-import codecs
-import tempfile
-import pkg_resources
-from pathlib import Path
-import os
 from PIL import Image
 from io import BytesIO
 from resizeimage import resizeimage
@@ -379,4 +374,3 @@ class PostcardCreator(object):
 if __name__ == '__main__':
     Debug.debug = True
     Debug.trace = True
-
