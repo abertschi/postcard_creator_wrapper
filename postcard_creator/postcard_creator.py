@@ -9,6 +9,9 @@ import tempfile
 import pkg_resources
 from pathlib import Path
 import os
+from PIL import Image
+from io import BytesIO
+from resizeimage import resizeimage
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('postcard-creator')
@@ -42,6 +45,7 @@ class Token(object):
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         'Origin': 'https://account.post.ch'
     }
+
     # cache_filename = 'pcc_cache.json'
 
     def __init__(self):
@@ -73,7 +77,6 @@ class Token(object):
     #         except Exception:
     #             return None
     #
-
 
     def fetch_token(self, username, password):
         if username is None or password is None:
@@ -131,7 +134,7 @@ class Token(object):
 
         if any(e.status_code is not 200 for e in [response1, response2, response3]):
             raise Exception('Wrong user credentials')
-
+        print(response3.text)
         soup = BeautifulSoup(response3.text, 'html.parser')
         saml_response = soup.find('input', {'name': 'SAMLResponse'})
 
@@ -332,7 +335,7 @@ class PostcardCreator(object):
 
         files = {
             'title': (None, 'Title of image'),
-            'asset': postcard.picture_stream
+            'asset': ('asset.png', self._roate_and_scale_image(postcard.picture_stream), 'image/jpeg')
         }
 
         # 'title': (None, 'Title of image'),
@@ -340,7 +343,8 @@ class PostcardCreator(object):
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
-        return self._do_op('post', endpoint, files=files, headers=headers)
+        r = self._do_op('post', endpoint, files=files, headers=headers)
+        return r
 
     def _set_card_recipient(self, user_id, card_id, postcard):
         endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
@@ -358,6 +362,21 @@ class PostcardCreator(object):
         endpoint = f'/users/{user_id}/mailings/{card_id}/order'
         return self._do_op('post', endpoint, json={})
 
+    @staticmethod
+    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=7):
+        with Image.open(file) as image:
+            if image.width < image.height:
+                image = image.rotate(90, expand=True)
+
+            cover = resizeimage.resize_cover(image, [target_width * quality_factor, target_height * quality_factor])
+            with BytesIO() as f:
+                cover.save(f, 'JPEG')  # TODO: support other formats?
+                scaled = f.getvalue()
+
+        return scaled
+
 
 if __name__ == '__main__':
-    None
+    Debug.debug = True
+    Debug.trace = True
+
