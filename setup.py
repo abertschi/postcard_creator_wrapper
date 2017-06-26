@@ -49,6 +49,7 @@ setup(
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']},
     extras_require={
         'test': ['coverage', 'pytest'],
     }
