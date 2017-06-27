@@ -33,9 +33,9 @@ card = Postcard(message='', recipient=recipient, sender=sender, picture_location
 w = PostcardCreator(token)
 w.send_free_card(postcard=card)
 ```
-## Varia
-Looking for an implementation in JavaScript?
-- Check out https://github.com/gido/postcardcreator by Gilles Doge (MIT) 
+## Related
+- [postcards](https://github.com/abertschi/postcards) - A CLI for the Swiss Postcard Creator
+- [postcardcreator](https://github.com/gido/postcardcreator) - JavaScript API wrapper
 
 ## Author
 
