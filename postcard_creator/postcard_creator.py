@@ -7,6 +7,7 @@ import datetime
 from PIL import Image
 from io import BytesIO
 from resizeimage import resizeimage
+import pkg_resources
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('postcard-creator')
