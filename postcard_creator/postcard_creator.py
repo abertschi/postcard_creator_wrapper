@@ -9,29 +9,19 @@ from io import BytesIO
 from resizeimage import resizeimage
 import pkg_resources
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('postcard-creator')
+LOGGING_TRACE_LVL = 5
+logger = logging.getLogger('postcard_creator')
+logging.addLevelName(LOGGING_TRACE_LVL, 'TRACE')
+setattr(logger, 'trace', lambda *args: logger.log(LOGGING_TRACE_LVL, *args))
 
 
-class Debug(object):
-    debug = False
-    trace = False
-
-    @staticmethod
-    def log(msg):
-        if Debug.debug:
-            logger.info(msg)
-
-    @staticmethod
-    def trace_request(response):
-        if Debug.trace:
-            data = dump.dump_all(response)
-            try:
-                logger.info(data.decode())
-            except Exception:
-                data = str(data).replace('\\r\\n', '\r\n')
-                logger.info("Failed to print request/response decoded. Printing it as byte string instead")
-                logger.info(data)
+def _trace_request(response):
+    data = dump.dump_all(response)
+    try:
+        logger.trace(data.decode())
+    except Exception:
+        data = str(data).replace('\\r\\n', '\r\n')
+        logger.trace(data)
 
 
 class Token(object):
@@ -76,6 +66,8 @@ class Token(object):
     #
 
     def fetch_token(self, username, password):
+        logger.debug('fetching postcard account token')
+
         if username is None or password is None:
             raise Exception('No username/ password given')
 
@@ -89,12 +81,11 @@ class Token(object):
         }
 
         response = session.post(url=self.token_url, headers=self.headers, data=payload)
-        Debug.log(f' post {self.token_url}')
-        Debug.trace_request(response)
+        logger.debug(f' post {self.token_url}')
+        _trace_request(response)
 
         try:
             access_token = json.loads(response.text)
-
             self.token = access_token['access_token']
             self.token_type = access_token['token_type']
             self.token_expires_in = access_token['expires_in']
@@ -108,7 +99,7 @@ class Token(object):
                 'Could not get access_token. Something broke. '
                 'set Debug.debug/trace=True to debug why\n' + response.text)
 
-        Debug.log(' username/password authentication successful')
+        logger.debug('username/password authentication was successful')
 
     def _get_saml_response(self, session, username, password):
         url = f'{self.base}/SAML/IdentityProvider/'
@@ -120,26 +111,26 @@ class Token(object):
             'confirmLogin': ''
         }
         response1 = session.get(url=url + query, headers=self.headers)
-        Debug.trace_request(response1)
-        Debug.log(f' get {url}')
+        _trace_request(response1)
+        logger.debug(f' get {url}')
 
         response2 = session.post(url=url + query, headers=self.headers, data=data)
-        Debug.trace_request(response2)
-        Debug.log(f' post {url}')
+        _trace_request(response2)
+        logger.debug(f' post {url}')
 
         response3 = session.post(url=url + query, headers=self.headers)
-        Debug.trace_request(response3)
-        Debug.log(f' post {url}')
+        _trace_request(response3)
+        logger.debug(f' post {url}')
 
         if any(e.status_code is not 200 for e in [response1, response2, response3]):
             raise Exception('Wrong user credentials')
-        print(response3.text)
+
         soup = BeautifulSoup(response3.text, 'html.parser')
         saml_response = soup.find('input', {'name': 'SAMLResponse'})
 
         if saml_response is None or saml_response.get('value') is None:
             raise Exception('Username/password authentication failed. '
-                            'Are your credentials valid?. set Debug.debug/trace=True for more information')
+                            'Are your credentials valid?.')
 
         return saml_response.get('value')
 
@@ -266,9 +257,9 @@ class PostcardCreator(object):
         if 'headers' not in kwargs or kwargs['headers'] is None:
             kwargs['headers'] = self._get_headers()
 
-        Debug.log(f' {method}: {url}')
+        logger.debug(f' {method}: {url}')
         response = self._session.request(method, url, **kwargs)
-        Debug.trace_request(response)
+        _trace_request(response)
 
         if response.status_code not in [200, 201, 204]:
             raise Exception(
@@ -277,15 +268,21 @@ class PostcardCreator(object):
         return response
 
     def get_user_info(self):
+        logger.debug('fetching user information')
         endpoint = '/users/current'
+
         return self._do_op('get', endpoint).json()
 
     def get_billing_saldo(self):
+        logger.debug('fetching billing saldo')
+
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/billingOnlineAccountSaldo'
         return self._do_op('get', endpoint).json()
 
     def get_quota(self):
+        logger.debug('fetching quota')
+
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/quota'
         return self._do_op('get', endpoint).json()
@@ -309,12 +306,12 @@ class PostcardCreator(object):
         self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(user_id))
         self._set_svg_page(2, user_id, card_id, postcard.get_backpage())
 
-        if not mock_send:
-            response = self._do_order(user_id, card_id)
-            Debug.log('Postcard sent!')
+        if mock_send:
+            response = False
+            logger.debug('postcard was not sent because flag mock_send=True')
         else:
-            response = 'postcard was not sent'
-            logger.info('Postcard was not sent. mock_send=True')
+            response = self._do_order(user_id, card_id)
+            logger.debug('postcard sent for printout')
 
         return response
 
@@ -331,6 +328,7 @@ class PostcardCreator(object):
         return mailing_response.headers['Location'].partition('mailings/')[2]
 
     def _upload_asset(self, user, postcard):
+        logger.debug('uploading postcard asset')
         endpoint = f'/users/{user["userId"]}/assets'
 
         files = {
@@ -347,10 +345,12 @@ class PostcardCreator(object):
         return r
 
     def _set_card_recipient(self, user_id, card_id, postcard):
+        logger.debug('set recipient for postcard')
         endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
         return self._do_op('put', endpoint, json=postcard.recipient.to_json())
 
     def _set_svg_page(self, page_number, user_id, card_id, svg_content):
+        logger.debug('set svg template ' + str(page_number) + ' for postcard')
         endpoint = f'/users/{user_id}/mailings/{card_id}/pages/{page_number}'
 
         headers = self._get_headers()
@@ -359,6 +359,7 @@ class PostcardCreator(object):
         return self._do_op('put', endpoint, data=svg_content, headers=headers)
 
     def _do_order(self, user_id, card_id):
+        logger.debug('submit postcard to be printed and delivered')
         endpoint = f'/users/{user_id}/mailings/{card_id}/order'
         return self._do_op('post', endpoint, json={})
 
@@ -377,5 +378,7 @@ class PostcardCreator(object):
 
 
 if __name__ == '__main__':
-    Debug.debug = True
-    Debug.trace = True
+    logging.basicConfig(level=logging.INFO,
+                        format='%(name)s (%(levelname)s): %(message)s')
+
+    logging.getLogger('postcard_creator').setLevel(logging.DEBUG)
