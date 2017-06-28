@@ -38,7 +38,8 @@ class Token(object):
     base = 'https://account.post.ch'
     token_url = 'https://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                      'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         'Origin': 'https://account.post.ch'
     }
 
@@ -104,13 +105,15 @@ class Token(object):
 
         except Exception:
             raise Exception(
-                'Could not get access_token. Something broke. set Debug.debug/trace=True to debug why\n' + response.text)
+                'Could not get access_token. Something broke. '
+                'set Debug.debug/trace=True to debug why\n' + response.text)
 
         Debug.log(' username/password authentication successful')
 
     def _get_saml_response(self, session, username, password):
         url = f'{self.base}/SAML/IdentityProvider/'
-        query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
+        query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch' + \
+                '&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
         data = {
             'isiwebuserid': username,
             'isiwebpasswd': password,
@@ -250,7 +253,8 @@ class PostcardCreator(object):
 
     def _get_headers(self):
         return {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Authorization': f'Bearer {self.token.token}'
         }
 
