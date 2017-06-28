@@ -5,11 +5,13 @@ This project is still in early development. Feedback and support appreciated.
 
 ## Installation
 ```sh
-$ pip install postcard_creator
+$ pip install postcard-creator
 ```
 
 ## Setup / API Usage
 ```python
+from postcard_creator import postcard_creator
+
 w = PostcardCreator(token)
 w.get_user_info()
 w.get_billing_saldo()
@@ -26,12 +28,13 @@ Debug.trace = True
 
 token = Token()
 token.fetch_token(username='', password='')
+token.has_valid_credentials(username='', password='')
 recipient = Recipient(prename='', lastname='', street='', place='', zip_code=0000)
 sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
 card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
 
 w = PostcardCreator(token)
-w.send_free_card(postcard=card)
+w.send_free_card(postcard=card, mock_send=False)
 ```
 ## Related
 - [postcards](https://github.com/abertschi/postcards) - A CLI for the Swiss Postcard Creator
