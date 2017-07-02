@@ -250,8 +250,6 @@ class PostcardCreator(object):
         }
 
     def _do_op(self, method, endpoint, **kwargs):
-        # if not endpoint.endswith('/'):
-        #     endpoint += '/'
         url = self.host + endpoint
         if 'headers' not in kwargs or kwargs['headers'] is None:
             kwargs['headers'] = self._get_headers()
