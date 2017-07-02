@@ -256,7 +256,7 @@ class PostcardCreator(object):
         if 'headers' not in kwargs or kwargs['headers'] is None:
             kwargs['headers'] = self._get_headers()
 
-        logger.debug(f' {method}: {url}')
+        logger.debug(f'{method}: {url}')
         response = self._session.request(method, url, **kwargs)
         _trace_request(response)
 
