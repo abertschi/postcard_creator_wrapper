@@ -11,7 +11,6 @@ reqs = [str(ir.req) for ir in install_reqs]
 
 
 def read(*parts):
-    # intentionally *not* adding an encoding option to open
     return codecs.open(os.path.join(here, *parts), 'r').read()
 
 
