@@ -11,7 +11,6 @@ reqs = [str(ir.req) for ir in install_reqs]
 
 
 def read(*parts):
-    # intentionally *not* adding an encoding option to open
     return codecs.open(os.path.join(here, *parts), 'r').read()
 
 
@@ -47,6 +46,10 @@ setup(
 
         'Programming Language :: Python :: 3.6',
     ],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest'],
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']},
     extras_require={
+        'test': ['coverage', 'pytest'],
     }
 )

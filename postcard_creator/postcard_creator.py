@@ -4,41 +4,36 @@ import json
 from bs4 import BeautifulSoup
 from requests_toolbelt.utils import dump
 import datetime
-import codecs
-import tempfile
+from PIL import Image
+from io import BytesIO
+from resizeimage import resizeimage
 import pkg_resources
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('postcard-creator')
+LOGGING_TRACE_LVL = 5
+logger = logging.getLogger('postcard_creator')
+logging.addLevelName(LOGGING_TRACE_LVL, 'TRACE')
+setattr(logger, 'trace', lambda *args: logger.log(LOGGING_TRACE_LVL, *args))
 
-class Debug(object):
-    debug = False
-    trace = False
 
-    @staticmethod
-    def log(msg):
-        if Debug.debug:
-            logger.info(msg)
-
-    @staticmethod
-    def trace_request(response):
-        if Debug.trace:
-            data = dump.dump_all(response)
-            try:
-                logger.info(data.decode())
-            except Exception:
-                data = str(data).replace('\\r\\n', '\r\n')
-                logger.info("Failed to print request/response decoded. Printing it as byte string instead")
-                logger.info(data)
+def _trace_request(response):
+    data = dump.dump_all(response)
+    try:
+        logger.trace(data.decode())
+    except Exception:
+        data = str(data).replace('\\r\\n', '\r\n')
+        logger.trace(data)
 
 
 class Token(object):
     base = 'https://account.post.ch'
     token_url = 'https://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                      'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         'Origin': 'https://account.post.ch'
     }
+
+    # cache_filename = 'pcc_cache.json'
 
     def __init__(self):
         self.token = None
@@ -54,12 +49,30 @@ class Token(object):
         except Exception:
             return False
 
+    # def store_token_to_cache(self, key, token):
+    #
+    # def check_token_in_cache(self, username, password):
+    #     tmp_dir = tempfile.gettempdir()
+    #     tmp_path = os.path.join(tmp_dir, self.cache_filename)
+    #     tmp_file = Path(tmp_path)
+    #
+    #     if tmp_file.exists():
+    #         cache_content = open(tmp_file, "r").read()
+    #         cache = []
+    #         try:
+    #             cache = json.load(cache_content)
+    #         except Exception:
+    #             return None
+    #
+
     def fetch_token(self, username, password):
+        logger.debug('fetching postcard account token')
+
         if username is None or password is None:
             raise Exception('No username/ password given')
 
-        if self.cache_token:
-            tmp_dir = tempfile.gettempdir()  # TODO, option to cache token
+        # if self.cache_token:
+        #     self.check_token_in_cache(username, password)
 
         session = requests.Session()
         payload = {
@@ -68,12 +81,11 @@ class Token(object):
         }
 
         response = session.post(url=self.token_url, headers=self.headers, data=payload)
-        Debug.log(f' post {self.token_url}')
-        Debug.trace_request(response)
+        logger.debug(f' post {self.token_url}')
+        _trace_request(response)
 
         try:
             access_token = json.loads(response.text)
-
             self.token = access_token['access_token']
             self.token_type = access_token['token_type']
             self.token_expires_in = access_token['expires_in']
@@ -84,29 +96,31 @@ class Token(object):
 
         except Exception:
             raise Exception(
-                'Could not get access_token. Something broke. set Debug.debug/trace=True to debug why\n' + response.text)
+                'Could not get access_token. Something broke. '
+                'set Debug.debug/trace=True to debug why\n' + response.text)
 
-        Debug.log(' username/password authentication successful')
+        logger.debug('username/password authentication was successful')
 
     def _get_saml_response(self, session, username, password):
         url = f'{self.base}/SAML/IdentityProvider/'
-        query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
+        query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch' + \
+                '&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
         data = {
             'isiwebuserid': username,
             'isiwebpasswd': password,
             'confirmLogin': ''
         }
         response1 = session.get(url=url + query, headers=self.headers)
-        Debug.trace_request(response1)
-        Debug.log(f' get {url}')
+        _trace_request(response1)
+        logger.debug(f' get {url}')
 
         response2 = session.post(url=url + query, headers=self.headers, data=data)
-        Debug.trace_request(response2)
-        Debug.log(f' post {url}')
+        _trace_request(response2)
+        logger.debug(f' post {url}')
 
         response3 = session.post(url=url + query, headers=self.headers)
-        Debug.trace_request(response3)
-        Debug.log(f' post {url}')
+        _trace_request(response3)
+        logger.debug(f' post {url}')
 
         if any(e.status_code is not 200 for e in [response1, response2, response3]):
             raise Exception('Wrong user credentials')
@@ -116,7 +130,7 @@ class Token(object):
 
         if saml_response is None or saml_response.get('value') is None:
             raise Exception('Username/password authentication failed. '
-                            'Are your credentials valid?. set Debug.debug/trace=True for more information')
+                            'Are your credentials valid?.')
 
         return saml_response.get('value')
 
@@ -175,15 +189,13 @@ class Recipient(object):
 
 
 class Postcard(object):
-    def __init__(self, picture_location, sender, recipient, message=''):
+    def __init__(self, sender, recipient, picture_stream, message=''):
         self.recipient = recipient
         self.message = message
-        self.picture_location = picture_location
+        self.picture_stream = picture_stream
         self.sender = sender
-
-    def get_picture_as_bytes(self):
-        f = codecs.open(self.picture_location, 'rb')
-        return f.read()
+        self.frontpage_layout = pkg_resources.resource_string(__name__, 'page_1.svg').decode('utf-8')
+        self.backpage_layout = pkg_resources.resource_string(__name__, 'page_2.svg').decode('utf-8')
 
     def is_valid(self):
         return self.recipient is not None \
@@ -197,14 +209,11 @@ class Postcard(object):
         if self.recipient is None or not self.recipient.is_valid():
             raise Exception('Not all required attributes in sender set')
 
-    def get_default_svg_page_1(self, user_id):
-        svg = pkg_resources.resource_string(__name__, 'page_1.svg')
-        svg = svg.decode('utf-8')
-        return svg.replace('{user_id}', str(user_id))
+    def get_frontpage(self, user_id):
+        return self.frontpage_layout.replace('{user_id}', str(user_id))
 
-    def get_default_svg_page_2(self):
-        svg = pkg_resources.resource_string(__name__, 'page_2.svg')
-        svg = svg.decode('utf-8')
+    def get_backpage(self):
+        svg = self.backpage_layout
 
         return svg \
             .replace('{first_name}', self.recipient.prename) \
@@ -235,21 +244,19 @@ class PostcardCreator(object):
 
     def _get_headers(self):
         return {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Authorization': f'Bearer {self.token.token}'
         }
 
     def _do_op(self, method, endpoint, **kwargs):
-        if not endpoint.endswith('/'):
-            endpoint += '/'
-
         url = self.host + endpoint
         if 'headers' not in kwargs or kwargs['headers'] is None:
             kwargs['headers'] = self._get_headers()
 
-        Debug.log(f' {method}: {url}')
+        logger.debug(f'{method}: {url}')
         response = self._session.request(method, url, **kwargs)
-        Debug.trace_request(response)
+        _trace_request(response)
 
         if response.status_code not in [200, 201, 204]:
             raise Exception(
@@ -258,15 +265,21 @@ class PostcardCreator(object):
         return response
 
     def get_user_info(self):
+        logger.debug('fetching user information')
         endpoint = '/users/current'
+
         return self._do_op('get', endpoint).json()
 
     def get_billing_saldo(self):
+        logger.debug('fetching billing saldo')
+
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/billingOnlineAccountSaldo'
         return self._do_op('get', endpoint).json()
 
     def get_quota(self):
+        logger.debug('fetching quota')
+
         user = self.get_user_info()
         endpoint = f'/users/{user["userId"]}/quota'
         return self._do_op('get', endpoint).json()
@@ -287,15 +300,15 @@ class PostcardCreator(object):
 
         self._upload_asset(user, postcard=postcard)
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
-        self._set_svg_page1(user_id, card_id, postcard)
-        self._set_svg_page2(user_id, card_id, postcard)
+        self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(user_id))
+        self._set_svg_page(2, user_id, card_id, postcard.get_backpage())
 
-        if not mock_send:
-            response = self._do_order(user_id, card_id)
-            Debug.log('Postcard sent!')
+        if mock_send:
+            response = False
+            logger.debug('postcard was not sent because flag mock_send=True')
         else:
-            response = 'postcard was not sent'
-            logger.info('Postcard was not sent. mock_send=True')
+            response = self._do_order(user_id, card_id)
+            logger.debug('postcard sent for printout')
 
         return response
 
@@ -312,51 +325,61 @@ class PostcardCreator(object):
         return mailing_response.headers['Location'].partition('mailings/')[2]
 
     def _upload_asset(self, user, postcard):
+        logger.debug('uploading postcard asset')
         endpoint = f'/users/{user["userId"]}/assets'
 
-        bytes = postcard.get_picture_as_bytes()
         files = {
             'title': (None, 'Title of image'),
-            'asset': ('asset.png', bytes, 'image/jpeg')
+            'asset': ('asset.jpg', self._roate_and_scale_image(postcard.picture_stream), 'application/octet-stream')
         }
 
+        # 'title': (None, 'Title of image'),
+        # 'asset': ('asset.png', bytes, 'image/jpeg')
+
         headers = self._get_headers()
-        headers['Origin'] = 'file://'
-        return self._do_op('post', endpoint, files=files, headers=headers)
+        #headers['Origin'] = 'file://'
+        r = self._do_op('post', endpoint, files=files, headers=headers)
+        return r
 
     def _set_card_recipient(self, user_id, card_id, postcard):
+        logger.debug('set recipient for postcard')
         endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
         return self._do_op('put', endpoint, json=postcard.recipient.to_json())
 
-    def _set_svg_page1(self, user_id, card_id, postcard):
-        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/1'
+    def _set_svg_page(self, page_number, user_id, card_id, svg_content):
+        logger.debug('set svg template ' + str(page_number) + ' for postcard')
+        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/{page_number}'
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
         headers['Content-Type'] = 'image/svg+xml'
-        return self._do_op('put', endpoint, data=postcard.get_default_svg_page_1(user_id=user_id), headers=headers)
-
-    def _set_svg_page2(self, user_id, card_id, postcard):
-        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/2'
-
-        headers = self._get_headers()
-        headers['Origin'] = 'file://'
-        headers['Content-Type'] = 'image/svg+xml'
-        return self._do_op('put', endpoint, data=postcard.get_default_svg_page_2(), headers=headers)
+        return self._do_op('put', endpoint, data=svg_content, headers=headers)
 
     def _do_order(self, user_id, card_id):
+        logger.debug('submit postcard to be printed and delivered')
         endpoint = f'/users/{user_id}/mailings/{card_id}/order'
         return self._do_op('post', endpoint, json={})
 
+    @staticmethod
+    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=7, export=False):
+        with Image.open(file) as image:
+            if image.width < image.height:
+                image = image.rotate(90, expand=True)
+
+            cover = resizeimage.resize_cover(image, [target_width * quality_factor, target_height * quality_factor], )
+            with BytesIO() as f:
+                cover.save(f, 'JPEG')  # TODO: support other formats?
+                scaled = f.getvalue()
+
+            if export:
+                cover.save('tmp.jpg')
+
+        return scaled
+
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO,
+                        format='%(name)s (%(levelname)s): %(message)s')
 
-    token = Token()
-    token.fetch_token(username='', password='')
-    recipient = Recipient(prename='', lastname='', street='', place='', zip_code=0000)
-    sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
-    card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
-
-    w = PostcardCreator(token)
-    w.send_free_card(postcard=card)
+    logging.getLogger('postcard_creator').setLevel(logging.DEBUG)
 

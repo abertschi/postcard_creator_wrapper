@@ -102,3 +102,7 @@ ENV/
 .idea
 credentials
 notes
+img.jpg
+tmp_play
+test
+trace.txt

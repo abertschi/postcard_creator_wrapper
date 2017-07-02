@@ -29,6 +29,7 @@
         <rect x="-3" y="-3" width="154" height="111" style="fill:#ddddff; stroke:none"/>
     </g>
     <g id="user-area" class="layer user-area" clip-path="url(#user-zone)">
+        <!-- xlink:href="df-svg:/assets/user/{user_id}.highres" -->
         <image
                 x="0"
                 y="0"
