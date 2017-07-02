@@ -250,9 +250,8 @@ class PostcardCreator(object):
         }
 
     def _do_op(self, method, endpoint, **kwargs):
-        if not endpoint.endswith('/'):
-            endpoint += '/'
-
+        # if not endpoint.endswith('/'):
+        #     endpoint += '/'
         url = self.host + endpoint
         if 'headers' not in kwargs or kwargs['headers'] is None:
             kwargs['headers'] = self._get_headers()
@@ -333,14 +332,14 @@ class PostcardCreator(object):
 
         files = {
             'title': (None, 'Title of image'),
-            'asset': ('asset.png', self._roate_and_scale_image(postcard.picture_stream), 'image/jpeg')
+            'asset': ('asset.jpg', self._roate_and_scale_image(postcard.picture_stream), 'application/octet-stream')
         }
 
         # 'title': (None, 'Title of image'),
         # 'asset': ('asset.png', bytes, 'image/jpeg')
 
         headers = self._get_headers()
-        headers['Origin'] = 'file://'
+        #headers['Origin'] = 'file://'
         r = self._do_op('post', endpoint, files=files, headers=headers)
         return r
 
@@ -364,15 +363,18 @@ class PostcardCreator(object):
         return self._do_op('post', endpoint, json={})
 
     @staticmethod
-    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=7):
+    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=7, export=False):
         with Image.open(file) as image:
             if image.width < image.height:
                 image = image.rotate(90, expand=True)
 
-            cover = resizeimage.resize_cover(image, [target_width * quality_factor, target_height * quality_factor])
+            cover = resizeimage.resize_cover(image, [target_width * quality_factor, target_height * quality_factor], )
             with BytesIO() as f:
                 cover.save(f, 'JPEG')  # TODO: support other formats?
                 scaled = f.getvalue()
+
+            if export:
+                cover.save('tmp.jpg')
 
         return scaled
 
@@ -382,3 +384,4 @@ if __name__ == '__main__':
                         format='%(name)s (%(levelname)s): %(message)s')
 
     logging.getLogger('postcard_creator').setLevel(logging.DEBUG)
+

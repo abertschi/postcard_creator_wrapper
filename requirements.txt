@@ -14,4 +14,3 @@ requests-toolbelt==0.8.0
 responses==0.5.1
 six==1.10.0
 urllib3==1.21.1
-wheel==0.24.0
