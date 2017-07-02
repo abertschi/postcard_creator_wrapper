@@ -10,7 +10,7 @@ $ pip install postcard-creator
 
 ## Setup / API Usage
 ```python
-from postcard_creator import postcard_creator
+from postcard_creator.postcard_creator import PostcardCreator
 
 w = PostcardCreator(token)
 w.get_user_info()
@@ -23,8 +23,7 @@ w.send_free_card(postcard=)
 ## Usage
 
 ```python
-Debug.debug = True
-Debug.trace = True
+from postcard_creator.postcard_creator import PostcardCreator, Postcard, Token, Recipient, Sender
 
 token = Token()
 token.fetch_token(username='', password='')
@@ -36,6 +35,19 @@ card = Postcard(message='', recipient=recipient, sender=sender, picture_location
 w = PostcardCreator(token)
 w.send_free_card(postcard=card, mock_send=False)
 ```
+### Logging
+```python
+import logging
+
+logger = logging.getLogger('postcard_creator')
+
+# log levels
+# 5: trace
+# 10: debug
+# 20: info
+# 30: warning
+```
+
 ## Related
 - [postcards](https://github.com/abertschi/postcards) - A CLI for the Swiss Postcard Creator
 - [postcardcreator](https://github.com/gido/postcardcreator) - JavaScript API wrapper
