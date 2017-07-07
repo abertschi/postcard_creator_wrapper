@@ -8,6 +8,7 @@ from PIL import Image
 from io import BytesIO
 from resizeimage import resizeimage
 import pkg_resources
+import math
 
 LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
@@ -209,8 +210,8 @@ class Postcard(object):
         if self.recipient is None or not self.recipient.is_valid():
             raise Exception('Not all required attributes in sender set')
 
-    def get_frontpage(self, user_id):
-        return self.frontpage_layout.replace('{user_id}', str(user_id))
+    def get_frontpage(self, asset_id):
+        return self.frontpage_layout.replace('{asset_id}', str(asset_id))
 
     def get_backpage(self):
         svg = self.backpage_layout
@@ -287,7 +288,7 @@ class PostcardCreator(object):
     def has_free_postcard(self):
         return self.get_quota()['available']
 
-    def send_free_card(self, postcard, mock_send=False):
+    def send_free_card(self, postcard, mock_send=False, **kwargs):
         if not self.has_free_postcard():
             raise Exception('Limit of free postcards exceeded. Try again tomorrow at ' + self.get_quota()['next'])
         if postcard is None:
@@ -298,9 +299,9 @@ class PostcardCreator(object):
         user_id = user['userId']
         card_id = self._create_card(user)
 
-        self._upload_asset(user, postcard=postcard)
+        asset_response = self._upload_asset(user, postcard=postcard)
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
-        self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(user_id))
+        self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(asset_id=asset_response['asset_id']))
         self._set_svg_page(2, user_id, card_id, postcard.get_backpage())
 
         if mock_send:
@@ -328,18 +329,24 @@ class PostcardCreator(object):
         logger.debug('uploading postcard asset')
         endpoint = f'/users/{user["userId"]}/assets'
 
+        # files = {
+        #     'title': (None, 'Title of image'),
+        #     'asset': ('asset.jpg', self._roate_and_scale_image(postcard.picture_stream), 'application/octet-stream')
+        # }
+
         files = {
             'title': (None, 'Title of image'),
-            'asset': ('asset.jpg', self._roate_and_scale_image(postcard.picture_stream), 'application/octet-stream')
+            'asset': ('asset.png', self._roate_and_scale_image(postcard.picture_stream), 'image/jpeg')
         }
-
-        # 'title': (None, 'Title of image'),
-        # 'asset': ('asset.png', bytes, 'image/jpeg')
-
         headers = self._get_headers()
-        #headers['Origin'] = 'file://'
-        r = self._do_op('post', endpoint, files=files, headers=headers)
-        return r
+        headers['Origin'] = 'file://'
+        response = self._do_op('post', endpoint, files=files, headers=headers)
+        asset_id = response.headers['Location'].partition('user/')[2]
+
+        return {
+            'asset_id': asset_id,
+            'response': response
+        }
 
     def _set_card_recipient(self, user_id, card_id, postcard):
         logger.debug('set recipient for postcard')
@@ -361,17 +368,34 @@ class PostcardCreator(object):
         return self._do_op('post', endpoint, json={})
 
     @staticmethod
-    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=7, export=False):
+    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=15, export=False):
         with Image.open(file) as image:
             if image.width < image.height:
                 image = image.rotate(90, expand=True)
+                logger.debug('rotating image by 90 degrees')
 
-            cover = resizeimage.resize_cover(image, [target_width * quality_factor, target_height * quality_factor], )
+            if image.width < quality_factor * target_width \
+                    or image.height < quality_factor * target_height:
+                factor_width = math.floor(image.width / target_width)
+                factor_height = math.floor(image.height / target_height)
+                factor = min([factor_height, factor_width])
+
+                logger.debug(f'image is smaller than default for resize/fill. '
+                             f'using scale factor {factor} instead of {quality_factor}')
+                quality_factor = factor
+
+            width = target_width * quality_factor
+            height = target_height * quality_factor
+            logger.debug(f'resizing image from {image.width}x{image.height} to {width}x{height}')
+
+            cover = resizeimage.resize_cover(image, [width, height],
+                                             validate=True)
             with BytesIO() as f:
                 cover.save(f, 'JPEG')  # TODO: support other formats?
                 scaled = f.getvalue()
 
             if export:
+                logger.info('exporting image as ./tmp.jpg')
                 cover.save('tmp.jpg')
 
         return scaled
@@ -382,4 +406,3 @@ if __name__ == '__main__':
                         format='%(name)s (%(levelname)s): %(message)s')
 
     logging.getLogger('postcard_creator').setLevel(logging.DEBUG)
-
