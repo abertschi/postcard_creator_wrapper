@@ -413,6 +413,6 @@ if __name__ == '__main__':
     logging.getLogger('postcard_creator').setLevel(logging.DEBUG)
 
     try:
-        from local_development import *
+        from local_dev.local_development import *
     except ImportError:
         pass
