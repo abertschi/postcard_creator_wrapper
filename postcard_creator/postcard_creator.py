@@ -25,6 +25,11 @@ def _trace_request(response):
         logger.trace(data)
 
 
+class PostcardCreatorException(Exception):
+    server_response = None
+    pass
+
+
 class Token(object):
     base = 'https://account.post.ch'
     token_url = 'https://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
@@ -47,7 +52,7 @@ class Token(object):
         try:
             self.fetch_token(username, password)
             return True
-        except Exception:
+        except PostcardCreatorException:
             return False
 
     # def store_token_to_cache(self, key, token):
@@ -70,7 +75,7 @@ class Token(object):
         logger.debug('fetching postcard account token')
 
         if username is None or password is None:
-            raise Exception('No username/ password given')
+            raise PostcardCreatorException('No username/ password given')
 
         # if self.cache_token:
         #     self.check_token_in_cache(username, password)
@@ -93,12 +98,13 @@ class Token(object):
             self.token_fetched_at = datetime.datetime.now()
 
             if response.status_code is not 200 or self.token is None:
-                raise Exception()
+                raise PostcardCreatorException()
 
-        except Exception:
-            raise Exception(
+        except PostcardCreatorException:
+            e = PostcardCreatorException(
                 'Could not get access_token. Something broke. '
-                'set Debug.debug/trace=True to debug why\n' + response.text)
+                'set increase debug verbosity to debug why')
+            e.server_response = response.text
 
         logger.debug('username/password authentication was successful')
 
@@ -124,14 +130,14 @@ class Token(object):
         logger.debug(f' post {url}')
 
         if any(e.status_code is not 200 for e in [response1, response2, response3]):
-            raise Exception('Wrong user credentials')
+            raise PostcardCreatorException('Wrong user credentials')
 
         soup = BeautifulSoup(response3.text, 'html.parser')
         saml_response = soup.find('input', {'name': 'SAMLResponse'})
 
         if saml_response is None or saml_response.get('value') is None:
-            raise Exception('Username/password authentication failed. '
-                            'Are your credentials valid?.')
+            raise PostcardCreatorException('Username/password authentication failed. '
+                                           'Are your credentials valid?.')
 
         return saml_response.get('value')
 
@@ -206,9 +212,9 @@ class Postcard(object):
 
     def validate(self):
         if self.recipient is None or not self.recipient.is_valid():
-            raise Exception('Not all required attributes in recipient set')
+            raise PostcardCreatorException('Not all required attributes in recipient set')
         if self.recipient is None or not self.recipient.is_valid():
-            raise Exception('Not all required attributes in sender set')
+            raise PostcardCreatorException('Not all required attributes in sender set')
 
     def get_frontpage(self, asset_id):
         return self.frontpage_layout.replace('{asset_id}', str(asset_id))
@@ -237,7 +243,7 @@ class Postcard(object):
 class PostcardCreator(object):
     def __init__(self, token=None):
         if token.token is None:
-            raise Exception('No Token given')
+            raise PostcardCreatorException('No Token given')
 
         self.token = token
         self.host = 'https://postcardcreator.post.ch/rest/2.1'
@@ -260,15 +266,14 @@ class PostcardCreator(object):
         _trace_request(response)
 
         if response.status_code not in [200, 201, 204]:
-            raise Exception(
-                f'Error in request {method} {url}. status_code: {response.status_code}, response:\n{response.text}')
-
+            e = PostcardCreatorException(f'Error in request {method} {url}. status_code: {response.status_code}')
+            e.server_response = response.text
+            raise e
         return response
 
     def get_user_info(self):
         logger.debug('fetching user information')
         endpoint = '/users/current'
-
         return self._do_op('get', endpoint).json()
 
     def get_billing_saldo(self):
@@ -290,9 +295,10 @@ class PostcardCreator(object):
 
     def send_free_card(self, postcard, mock_send=False, **kwargs):
         if not self.has_free_postcard():
-            raise Exception('Limit of free postcards exceeded. Try again tomorrow at ' + self.get_quota()['next'])
-        if postcard is None:
-            raise Exception('Postcard must be set')
+            raise PostcardCreatorException('Limit of free postcards exceeded. Try again tomorrow at '
+                                           + self.get_quota()['next'])
+        if not postcard:
+            raise PostcardCreatorException('Postcard must be set')
 
         postcard.validate()
         user = self.get_user_info()
@@ -317,7 +323,7 @@ class PostcardCreator(object):
         endpoint = f'/users/{user["userId"]}/mailings'
 
         mailing_payload = {
-            'name': f'Mobile App Mailing {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}',  # 2017-05-28 17:27
+            'name': f'Mobile App Mailing {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}',
             'addressFormat': 'PERSON_FIRST',
             'paid': False
         }
@@ -404,5 +410,9 @@ class PostcardCreator(object):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                         format='%(name)s (%(levelname)s): %(message)s')
-
     logging.getLogger('postcard_creator').setLevel(logging.DEBUG)
+
+    try:
+        from local_development import *
+    except ImportError:
+        pass
