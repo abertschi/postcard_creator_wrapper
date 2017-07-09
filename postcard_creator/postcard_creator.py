@@ -221,7 +221,6 @@ class Postcard(object):
 
     def get_backpage(self):
         svg = self.backpage_layout
-
         return svg \
             .replace('{first_name}', self.recipient.prename) \
             .replace('{last_name}', self.recipient.lastname) \
@@ -237,7 +236,7 @@ class Postcard(object):
             .replace('{sender_place}', self.sender.place) \
             .replace('{sender_country}', self.sender.country) \
             .replace('{message}',
-                     self.message)  # TODO This is put into html block. Check if newlines need to be encoded as html tags
+                     self.message.encode('ascii', 'xmlcharrefreplace'))  # fix umlaute
 
 
 class PostcardCreator(object):
