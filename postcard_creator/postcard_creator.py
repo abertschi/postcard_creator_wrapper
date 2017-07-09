@@ -397,7 +397,7 @@ class PostcardCreator(object):
             cover = resizeimage.resize_cover(image, [width, height],
                                              validate=True)
             with BytesIO() as f:
-                cover.save(f, 'JPEG')  # TODO: support other formats?
+                cover.save(f, 'JPEG')
                 scaled = f.getvalue()
 
             if export:
@@ -411,8 +411,3 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                         format='%(name)s (%(levelname)s): %(message)s')
     logging.getLogger('postcard_creator').setLevel(logging.DEBUG)
-
-    try:
-        from local_dev.local_development import *
-    except ImportError:
-        pass
