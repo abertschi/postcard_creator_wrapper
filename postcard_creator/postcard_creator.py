@@ -236,7 +236,7 @@ class Postcard(object):
             .replace('{sender_place}', self.sender.place) \
             .replace('{sender_country}', self.sender.country) \
             .replace('{message}',
-                     self.message.encode('ascii', 'xmlcharrefreplace'))  # fix umlaute
+                     self.message.encode('ascii', 'xmlcharrefreplace').decode('utf-8'))  # escape umlaute
 
 
 class PostcardCreator(object):
