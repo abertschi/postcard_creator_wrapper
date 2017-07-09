@@ -20,7 +20,7 @@ def _trace_request(response):
     data = dump.dump_all(response)
     try:
         logger.trace(data.decode())
-    except Exception:
+    except Exception as e:
         data = str(data).replace('\\r\\n', '\r\n')
         logger.trace(data)
 
@@ -52,7 +52,7 @@ class Token(object):
         try:
             self.fetch_token(username, password)
             return True
-        except PostcardCreatorException:
+        except PostcardCreatorException as e:
             return False
 
     # def store_token_to_cache(self, key, token):
@@ -87,7 +87,7 @@ class Token(object):
         }
 
         response = session.post(url=self.token_url, headers=self.headers, data=payload)
-        logger.debug(f' post {self.token_url}')
+        logger.debug(' post {}'.format(self.token_url))
         _trace_request(response)
 
         try:
@@ -100,7 +100,7 @@ class Token(object):
             if response.status_code is not 200 or self.token is None:
                 raise PostcardCreatorException()
 
-        except PostcardCreatorException:
+        except PostcardCreatorException as ex:
             e = PostcardCreatorException(
                 'Could not get access_token. Something broke. '
                 'set increase debug verbosity to debug why')
@@ -109,7 +109,7 @@ class Token(object):
         logger.debug('username/password authentication was successful')
 
     def _get_saml_response(self, session, username, password):
-        url = f'{self.base}/SAML/IdentityProvider/'
+        url = '{}/SAML/IdentityProvider/'.format(self.base)
         query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch' + \
                 '&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
         data = {
@@ -119,15 +119,15 @@ class Token(object):
         }
         response1 = session.get(url=url + query, headers=self.headers)
         _trace_request(response1)
-        logger.debug(f' get {url}')
+        logger.debug(' get {}'.format(url))
 
         response2 = session.post(url=url + query, headers=self.headers, data=data)
         _trace_request(response2)
-        logger.debug(f' post {url}')
+        logger.debug(' post {}'.format(url))
 
         response3 = session.post(url=url + query, headers=self.headers)
         _trace_request(response3)
-        logger.debug(f' post {url}')
+        logger.debug(' post {}'.format(url))
 
         if any(e.status_code is not 200 for e in [response1, response2, response3]):
             raise PostcardCreatorException('Wrong user credentials')
@@ -252,7 +252,7 @@ class PostcardCreator(object):
         return {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) '
                           'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
-            'Authorization': f'Bearer {self.token.token}'
+            'Authorization': 'Bearer {}'.format(self.token.token)
         }
 
     def _do_op(self, method, endpoint, **kwargs):
@@ -260,12 +260,13 @@ class PostcardCreator(object):
         if 'headers' not in kwargs or kwargs['headers'] is None:
             kwargs['headers'] = self._get_headers()
 
-        logger.debug(f'{method}: {url}')
+        logger.debug('{}: {}'.format(method, url))
         response = self._session.request(method, url, **kwargs)
         _trace_request(response)
 
         if response.status_code not in [200, 201, 204]:
-            e = PostcardCreatorException(f'Error in request {method} {url}. status_code: {response.status_code}')
+            e = PostcardCreatorException('error in request {} {}. status_code: {}'
+                                         .format(method, url, response.status_code))
             e.server_response = response.text
             raise e
         return response
@@ -279,14 +280,14 @@ class PostcardCreator(object):
         logger.debug('fetching billing saldo')
 
         user = self.get_user_info()
-        endpoint = f'/users/{user["userId"]}/billingOnlineAccountSaldo'
+        endpoint = '/users/{}/billingOnlineAccountSaldo'.format(user["userId"])
         return self._do_op('get', endpoint).json()
 
     def get_quota(self):
         logger.debug('fetching quota')
 
         user = self.get_user_info()
-        endpoint = f'/users/{user["userId"]}/quota'
+        endpoint = '/users/{}/quota'.format(user["userId"])
         return self._do_op('get', endpoint).json()
 
     def has_free_postcard(self):
@@ -319,10 +320,10 @@ class PostcardCreator(object):
         return response
 
     def _create_card(self, user):
-        endpoint = f'/users/{user["userId"]}/mailings'
+        endpoint = '/users/{}/mailings'.format(user["userId"])
 
         mailing_payload = {
-            'name': f'Mobile App Mailing {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}',
+            'name': 'Mobile App Mailing {}'.format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")),
             'addressFormat': 'PERSON_FIRST',
             'paid': False
         }
@@ -332,7 +333,7 @@ class PostcardCreator(object):
 
     def _upload_asset(self, user, postcard):
         logger.debug('uploading postcard asset')
-        endpoint = f'/users/{user["userId"]}/assets'
+        endpoint = '/users/{}/assets'.format(user["userId"])
 
         # files = {
         #     'title': (None, 'Title of image'),
@@ -355,12 +356,12 @@ class PostcardCreator(object):
 
     def _set_card_recipient(self, user_id, card_id, postcard):
         logger.debug('set recipient for postcard')
-        endpoint = f'/users/{user_id}/mailings/{card_id}/recipients'
+        endpoint = '/users/{}/mailings/{}/recipients'.format(user_id, card_id)
         return self._do_op('put', endpoint, json=postcard.recipient.to_json())
 
     def _set_svg_page(self, page_number, user_id, card_id, svg_content):
         logger.debug('set svg template ' + str(page_number) + ' for postcard')
-        endpoint = f'/users/{user_id}/mailings/{card_id}/pages/{page_number}'
+        endpoint = '/users/{}/mailings/{}/pages/{}'.format(user_id, card_id, page_number)
 
         headers = self._get_headers()
         headers['Origin'] = 'file://'
@@ -369,7 +370,7 @@ class PostcardCreator(object):
 
     def _do_order(self, user_id, card_id):
         logger.debug('submit postcard to be printed and delivered')
-        endpoint = f'/users/{user_id}/mailings/{card_id}/order'
+        endpoint = '/users/{}/mailings/{}/order'.format(user_id, card_id)
         return self._do_op('post', endpoint, json={})
 
     @staticmethod
@@ -385,13 +386,14 @@ class PostcardCreator(object):
                 factor_height = math.floor(image.height / target_height)
                 factor = min([factor_height, factor_width])
 
-                logger.debug(f'image is smaller than default for resize/fill. '
-                             f'using scale factor {factor} instead of {quality_factor}')
+                logger.debug('image is smaller than default for resize/fill. '
+                             'using scale factor {} instead of {}'.format(factor, quality_factor))
                 quality_factor = factor
 
             width = target_width * quality_factor
             height = target_height * quality_factor
-            logger.debug(f'resizing image from {image.width}x{image.height} to {width}x{height}')
+            logger.debug('resizing image from {}x{} to {}x{}'
+                         .format(image.width, image.height, width, height))
 
             cover = resizeimage.resize_cover(image, [width, height],
                                              validate=True)
