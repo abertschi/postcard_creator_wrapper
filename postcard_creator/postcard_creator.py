@@ -337,7 +337,7 @@ class PostcardCreator(object):
 
         files = {
             'title': (None, 'Title of image'),
-            'asset': ('asset.png', self._roate_and_scale_image(postcard.picture_stream), 'image/jpeg')
+            'asset': ('asset.png', self._rotate_and_scale_image(postcard.picture_stream), 'image/jpeg')
         }
         headers = self._get_headers()
         headers['Origin'] = 'file://'
@@ -369,7 +369,7 @@ class PostcardCreator(object):
         return self._do_op('post', endpoint, json={})
 
     @staticmethod
-    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=20,
+    def _rotate_and_scale_image(file, target_width=154, target_height=111, quality_factor=20,
                                export=False, rotate=True):
         with Image.open(file) as image:
             if rotate and image.width < image.height:
