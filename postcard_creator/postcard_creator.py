@@ -335,11 +335,6 @@ class PostcardCreator(object):
         logger.debug('uploading postcard asset')
         endpoint = '/users/{}/assets'.format(user["userId"])
 
-        # files = {
-        #     'title': (None, 'Title of image'),
-        #     'asset': ('asset.jpg', self._roate_and_scale_image(postcard.picture_stream), 'application/octet-stream')
-        # }
-
         files = {
             'title': (None, 'Title of image'),
             'asset': ('asset.png', self._roate_and_scale_image(postcard.picture_stream), 'image/jpeg')
