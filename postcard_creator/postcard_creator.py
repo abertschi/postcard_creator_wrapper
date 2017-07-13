@@ -374,9 +374,10 @@ class PostcardCreator(object):
         return self._do_op('post', endpoint, json={})
 
     @staticmethod
-    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=15, export=False):
+    def _roate_and_scale_image(file, target_width=154, target_height=111, quality_factor=20,
+                               export=False, rotate=True):
         with Image.open(file) as image:
-            if image.width < image.height:
+            if rotate and image.width < image.height:
                 image = image.rotate(90, expand=True)
                 logger.debug('rotating image by 90 degrees')
 
