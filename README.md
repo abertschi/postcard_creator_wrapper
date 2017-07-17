@@ -50,7 +50,7 @@ logger = logging.getLogger('postcard_creator')
 
 ## Related
 - [postcards](https://github.com/abertschi/postcards) - A CLI for the Swiss Postcard Creator
-- [postcardcreator](https://github.com/gido/postcardcreator) - JavaScript API wrapper
+- [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Author
 
