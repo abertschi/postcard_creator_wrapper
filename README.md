@@ -30,7 +30,7 @@ token.fetch_token(username='', password='')
 token.has_valid_credentials(username='', password='')
 recipient = Recipient(prename='', lastname='', street='', place='', zip_code=0000)
 sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
-card = Postcard(message='', recipient=recipient, sender=sender, picture_location='./asset.jpg')
+card = Postcard(message='', recipient=recipient, sender=sender, picture_stream=open('./my-photo.jpg', 'rb'))
 
 w = PostcardCreator(token)
 w.send_free_card(postcard=card, mock_send=False)
