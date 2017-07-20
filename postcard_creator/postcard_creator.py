@@ -9,6 +9,8 @@ from io import BytesIO
 from resizeimage import resizeimage
 import pkg_resources
 import math
+import os
+from time import gmtime, strftime
 
 LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
@@ -239,6 +241,18 @@ class Postcard(object):
                      self.message.encode('ascii', 'xmlcharrefreplace').decode('utf-8'))  # escape umlaute
 
 
+def _send_free_card_defaults(func):
+    def wrapped(*args, **kwargs):
+        kwargs['image_target_width'] = kwargs.get('image_target_width') or 154
+        kwargs['image_target_height'] = kwargs.get('image_target_height') or 111
+        kwargs['image_quality_factor'] = kwargs.get('image_quality_factor') or 20
+        kwargs['image_rotate'] = kwargs.get('image_rotate') or True
+        kwargs['image_export'] = kwargs.get('image_export') or False
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
 class PostcardCreator(object):
     def __init__(self, token=None):
         if token.token is None:
@@ -293,6 +307,7 @@ class PostcardCreator(object):
     def has_free_postcard(self):
         return self.get_quota()['available']
 
+    @_send_free_card_defaults
     def send_free_card(self, postcard, mock_send=False, **kwargs):
         if not self.has_free_postcard():
             raise PostcardCreatorException('Limit of free postcards exceeded. Try again tomorrow at '
@@ -305,7 +320,8 @@ class PostcardCreator(object):
         user_id = user['userId']
         card_id = self._create_card(user)
 
-        asset_response = self._upload_asset(user, postcard=postcard)
+        picture_stream = self._rotate_and_scale_image(postcard.picture_stream, **kwargs)
+        asset_response = self._upload_asset(user, picture_stream=picture_stream)
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
         self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(asset_id=asset_response['asset_id']))
         self._set_svg_page(2, user_id, card_id, postcard.get_backpage())
@@ -331,13 +347,13 @@ class PostcardCreator(object):
         mailing_response = self._do_op('post', endpoint, json=mailing_payload)
         return mailing_response.headers['Location'].partition('mailings/')[2]
 
-    def _upload_asset(self, user, postcard):
+    def _upload_asset(self, user, picture_stream):
         logger.debug('uploading postcard asset')
         endpoint = '/users/{}/assets'.format(user["userId"])
 
         files = {
             'title': (None, 'Title of image'),
-            'asset': ('asset.png', self._rotate_and_scale_image(postcard.picture_stream), 'image/jpeg')
+            'asset': ('asset.png', picture_stream, 'image/jpeg')
         }
         headers = self._get_headers()
         headers['Origin'] = 'file://'
@@ -368,38 +384,39 @@ class PostcardCreator(object):
         endpoint = '/users/{}/mailings/{}/order'.format(user_id, card_id)
         return self._do_op('post', endpoint, json={})
 
-    @staticmethod
-    def _rotate_and_scale_image(file, target_width=154, target_height=111, quality_factor=20,
-                               export=False, rotate=True):
+    def _rotate_and_scale_image(self, file, image_target_width=154, image_target_height=111,
+                                image_quality_factor=20, image_rotate=True, image_export=False):
+
         with Image.open(file) as image:
-            if rotate and image.width < image.height:
+            if image_rotate and image.width < image.height:
                 image = image.rotate(90, expand=True)
                 logger.debug('rotating image by 90 degrees')
 
-            if image.width < quality_factor * target_width \
-                    or image.height < quality_factor * target_height:
-                factor_width = math.floor(image.width / target_width)
-                factor_height = math.floor(image.height / target_height)
+            if image.width < image_quality_factor * image_target_width \
+                    or image.height < image_quality_factor * image_target_height:
+                factor_width = math.floor(image.width / image_target_width)
+                factor_height = math.floor(image.height / image_target_height)
                 factor = min([factor_height, factor_width])
 
                 logger.debug('image is smaller than default for resize/fill. '
-                             'using scale factor {} instead of {}'.format(factor, quality_factor))
-                quality_factor = factor
+                             'using scale factor {} instead of {}'.format(factor, image_quality_factor))
+                image_quality_factor = factor
 
-            width = target_width * quality_factor
-            height = target_height * quality_factor
+            width = image_target_width * image_quality_factor
+            height = image_target_height * image_quality_factor
             logger.debug('resizing image from {}x{} to {}x{}'
                          .format(image.width, image.height, width, height))
 
-            cover = resizeimage.resize_cover(image, [width, height],
-                                             validate=True)
+            cover = resizeimage.resize_cover(image, [width, height], validate=True)
             with BytesIO() as f:
                 cover.save(f, 'JPEG')
                 scaled = f.getvalue()
 
-            if export:
-                logger.info('exporting image as ./tmp.jpg')
-                cover.save('tmp.jpg')
+            if image_export:
+                name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S.jpg", gmtime())
+                path = os.path.join(os.getcwd(), name)
+                logger.info('exporting image to {} (image_export=True)'.format(path))
+                cover.save(path)
 
         return scaled
 
