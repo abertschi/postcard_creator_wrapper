@@ -1,55 +1,44 @@
-import responses
-from postcard_creator.postcard_creator import PostcardCreator, Debug, Token, Postcard
-import pytest
-
-TOKEN_AUTH_BASE_URL = 'https://account.post.ch'
-ACCOUNT_BASE_URL = Token.base
+from postcard_creator.postcard_creator import PostcardCreator, Token, Postcard
+import requests
+import requests_mock
+import logging
 import pkg_resources
+import json
 
-#
-# response1 = session.get(url=url + query, headers=self.headers)
-# Debug.trace_request(response1)
-# Debug.log(f' get {url}')
-#
-# response2 = session.post(url=url + query, headers=self.headers, data=data)
-# Debug.trace_request(response2)
-# Debug.log(f' post {url}')
-#
-# response3 = session.post(url=url + query, headers=self.headers)
-# Debug.trace_request(response3)
-# Debug.log(f' post {url}')
+logging.basicConfig(level=logging.INFO,
+                    format='%(name)s (%(levelname)s): %(message)s')
+logging.getLogger('postcard_creator').setLevel(10)
+
+adapter = requests_mock.Adapter()
 
 
-@pytest.fixture
-def ppc_wrapper():
-    # username = 'test_username'
-    # password = 'test_password'
-    # return Token(token)
-    return None
+def create_mocked_session(self):
+    session = requests.Session()
+    session.mount('mock', adapter)
+    return session
+
+
+Token._create_session = create_mocked_session
 
 
 def test_saml_response():
-    url_identitiy_provider = f'{TOKEN_AUTH_BASE_URL}/SAML/IdentityProvider/'
-    query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
+    token = Token(_protocol='mock://')
 
-    username = 'test_username'
-    password = 'test_password'
+    saml_url = 'mock://account.post.ch/SAML/IdentityProvider/'
+    sso_url = 'mock://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
 
-    data = {
-        'isiwebuserid': username,
-        'isiwebpasswd': password,
-        'confirmLogin': ''
-    }
     saml_response = pkg_resources.resource_string(__name__, 'saml_response.html').decode('utf-8')
+    access_token = {
+        'access_token': 'access_token',
+        'token_type': 'token_type',
+        'expires_in': 0
+    }
 
-    with responses.RequestsMock(assert_all_requests_are_fired=True) as rsps:
-        rsps.add(responses.GET, url_identitiy_provider + query,
-                 body={'junk of not important html'}, status=200)
+    adapter.register_uri('GET', saml_url, text='', reason='')
+    adapter.register_uri('POST', saml_url, reason='', text=saml_response)
+    adapter.register_uri('POST', sso_url, reason='', text=json.dumps(access_token))
 
-        rsps.add(responses.POST, url_identitiy_provider + query,
-                 body={'junk of not important html'}, status=200)
+    token.fetch_token('username', 'password')
 
-        rsps.add(responses.POST, url_identitiy_provider + query,
-                 body={saml_response}, status=200)
-        token = Token()
-        token.fetch_token(username, password)
+
+test_saml_response()

@@ -33,22 +33,26 @@ class PostcardCreatorException(Exception):
 
 
 class Token(object):
-    base = 'https://account.post.ch'
-    token_url = 'https://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                      'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
-        'Origin': 'https://account.post.ch'
-    }
+    def __init__(self, _protocol='https://'):
+        self.protocol = _protocol
+        self.base = '{}account.post.ch'.format(self.protocol)
+        self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+            'Origin': '{}account.post.ch'.format(self.protocol)
+        }
 
-    # cache_filename = 'pcc_cache.json'
+        # cache_filename = 'pcc_cache.json'
 
-    def __init__(self):
         self.token = None
         self.token_type = None
         self.token_expires_in = None
         self.token_fetched_at = None
         self.cache_token = False
+
+    def _create_session(self):
+        return requests.Session()
 
     def has_valid_credentials(self, username, password):
         try:
@@ -82,9 +86,9 @@ class Token(object):
         # if self.cache_token:
         #     self.check_token_in_cache(username, password)
 
-        session = requests.Session()
+        session = self._create_session()
         payload = {
-            'RelayState': 'https://postcardcreator.post.ch?inMobileApp=true&inIframe=false&lang=en',
+            'RelayState': '{}postcardcreator.post.ch?inMobileApp=true&inIframe=false&lang=en'.format(self.protocol),
             'SAMLResponse': self._get_saml_response(session, username, password)
         }
 
@@ -254,13 +258,13 @@ def _send_free_card_defaults(func):
 
 
 class PostcardCreator(object):
-    def __init__(self, token=None):
+    def __init__(self, token=None, _protocol='https://'):
         if token.token is None:
             raise PostcardCreatorException('No Token given')
-
         self.token = token
-        self.host = 'https://postcardcreator.post.ch/rest/2.1'
-        self._session = requests.Session()
+        self.protocol = _protocol
+        self.host = '{}postcardcreator.post.ch/rest/2.1'.format(self.protocol)
+        self._session = self._create_session()
 
     def _get_headers(self):
         return {
@@ -268,6 +272,9 @@ class PostcardCreator(object):
                           'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Authorization': 'Bearer {}'.format(self.token.token)
         }
+
+    def _create_session(self):
+        return requests.Session()
 
     def _do_op(self, method, endpoint, **kwargs):
         url = self.host + endpoint
