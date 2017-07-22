@@ -1,24 +1,56 @@
-from postcard_creator.postcard_creator import PostcardCreator, Token, Postcard
+from postcard_creator.postcard_creator import PostcardCreator, Token, Postcard, PostcardCreatorException
 import requests
 import requests_mock
 import logging
 import pkg_resources
 import json
+import pytest
 
 logging.basicConfig(level=logging.INFO,
                     format='%(name)s (%(levelname)s): %(message)s')
 logging.getLogger('postcard_creator').setLevel(10)
 
-adapter = requests_mock.Adapter()
+adapter = None
 
 
 def create_mocked_session(self):
+    global adapter
     session = requests.Session()
     session.mount('mock', adapter)
     return session
 
 
-Token._create_session = create_mocked_session
+def create_token():
+    global adapter
+    adapter = requests_mock.Adapter()
+    Token._create_session = create_mocked_session
+    return Token(_protocol='mock://')
+
+
+def test_token_invalid_args():
+    with pytest.raises(PostcardCreatorException):
+        token = create_token()
+        token.fetch_token(None, None)
+
+
+def test_token_wrong_user_credentials():
+    with pytest.raises(PostcardCreatorException):
+        token = create_token()
+        token.fetch_token('username', 'password')
+
+    pass
+
+
+def test_token_saml_invalid_response():
+    pass
+
+
+def test_token_invalid_token_returned():
+    pass
+
+
+def test_token_successful():
+    pass
 
 
 def test_saml_response():
@@ -39,6 +71,3 @@ def test_saml_response():
     adapter.register_uri('POST', sso_url, reason='', text=json.dumps(access_token))
 
     token.fetch_token('username', 'password')
-
-
-test_saml_response()
