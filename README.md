@@ -40,10 +40,10 @@ w.send_free_card(postcard=card, mock_send=False)
 The following keyword arguments are available for advanced configuration (listed with corresponding defaults).
 
 **PostcardCreator#send_free_card()**:
-- `image_export = False`: Export postcard image to current directory (os.getcwd).
+- `image_export = False`: Export postcard image to current directory (os.getcwd)
 - `image_rotate = True`: Rotate image if image height > image width
-- `image_quality_factor = 20`: Change picture quality. Resulting image has 
-`image_quality_factor x (image_target_width x image_target_height)` many pixels.
+- `image_quality_factor = 20`: Change picture quality, resulting image has 
+`image_quality_factor x (image_target_width x image_target_height)` many pixels
 - `image_target_width = 154`: Postcard image base width
 - `image_target_height = 111`: Postcard image base height
 
