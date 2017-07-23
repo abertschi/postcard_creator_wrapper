@@ -10,6 +10,9 @@ logging.basicConfig(level=logging.INFO,
                     format='%(name)s (%(levelname)s): %(message)s')
 logging.getLogger('postcard_creator').setLevel(10)
 
+URL_TOKEN_SAML = 'mock://account.post.ch/SAML/IdentityProvider/'
+URL_TOKEN_SSO = 'mock://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
+
 adapter = None
 
 
@@ -27,6 +30,21 @@ def create_token():
     return Token(_protocol='mock://')
 
 
+def create_token_with_successful_login():
+    token = create_token()
+    saml_response = pkg_resources.resource_string(__name__, 'saml_response.html').decode('utf-8')
+    access_token = {
+        'access_token': 0,
+        'token_type': 'token_type',
+        'expires_in': 3600
+    }
+
+    adapter.register_uri('GET', URL_TOKEN_SAML, text='', reason='')
+    adapter.register_uri('POST', URL_TOKEN_SAML, reason='', text=saml_response)
+    adapter.register_uri('POST', URL_TOKEN_SSO, reason='', text=json.dumps(access_token))
+    return token
+
+
 def test_token_invalid_args():
     with pytest.raises(PostcardCreatorException):
         token = create_token()
@@ -34,40 +52,41 @@ def test_token_invalid_args():
 
 
 def test_token_wrong_user_credentials():
-    with pytest.raises(PostcardCreatorException):
-        token = create_token()
-        token.fetch_token('username', 'password')
+    token = create_token()
+    adapter.register_uri('GET', URL_TOKEN_SAML, text='', reason='', status_code=500)
+    adapter.register_uri('POST', URL_TOKEN_SAML, reason='', text='')
+    adapter.register_uri('POST', URL_TOKEN_SSO, reason='', text='')
 
-    pass
+    with pytest.raises(PostcardCreatorException):
+        token.fetch_token('username', 'password')
 
 
 def test_token_saml_invalid_response():
-    pass
+    token = create_token_with_successful_login()
+    saml_response = pkg_resources.resource_string(__name__, 'saml_response_invalid.html').decode('utf-8')
+    adapter.register_uri('POST', URL_TOKEN_SAML, reason='', text=saml_response)
+
+    with pytest.raises(PostcardCreatorException):
+        token.fetch_token('username', 'password')
 
 
 def test_token_invalid_token_returned():
-    pass
+    token = create_token_with_successful_login()
+    adapter.register_uri('POST', URL_TOKEN_SSO, reason='', text=json.dumps(''), status_code=500)
+
+    with pytest.raises(PostcardCreatorException):
+        token.fetch_token('username', 'password')
 
 
-def test_token_successful():
-    pass
-
-
-def test_saml_response():
-    token = Token(_protocol='mock://')
-
-    saml_url = 'mock://account.post.ch/SAML/IdentityProvider/'
-    sso_url = 'mock://postcardcreator.post.ch/saml/SSO/alias/defaultAlias'
-
-    saml_response = pkg_resources.resource_string(__name__, 'saml_response.html').decode('utf-8')
-    access_token = {
-        'access_token': 'access_token',
-        'token_type': 'token_type',
-        'expires_in': 0
-    }
-
-    adapter.register_uri('GET', saml_url, text='', reason='')
-    adapter.register_uri('POST', saml_url, reason='', text=saml_response)
-    adapter.register_uri('POST', sso_url, reason='', text=json.dumps(access_token))
-
+def test_token_fetch_token_successful():
+    token = create_token_with_successful_login()
     token.fetch_token('username', 'password')
+
+    assert token.token == 0
+    assert token.token_type == 'token_type'
+    assert token.token_expires_in == 3600
+
+
+def test_token_has_valid_credential():
+    token = create_token_with_successful_login()
+    assert token.has_valid_credentials('username', 'password')

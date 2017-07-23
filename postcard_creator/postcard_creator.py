@@ -97,14 +97,14 @@ class Token(object):
         _trace_request(response)
 
         try:
+            if response.status_code is not 200:
+                raise PostcardCreatorException()
+
             access_token = json.loads(response.text)
             self.token = access_token['access_token']
             self.token_type = access_token['token_type']
             self.token_expires_in = access_token['expires_in']
             self.token_fetched_at = datetime.datetime.now()
-
-            if response.status_code is not 200 or self.token is None:
-                raise PostcardCreatorException()
 
         except PostcardCreatorException as ex:
             e = PostcardCreatorException(
