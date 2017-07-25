@@ -1,4 +1,6 @@
-# Postcard Creator [![PyPI version](https://img.shields.io/pypi/v/postcard_creator.svg)](https://badge.fury.io/py/postcard_creator) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+# Postcard Creator 
+
+[![PyPI version](https://img.shields.io/pypi/v/postcard_creator.svg)](https://badge.fury.io/py/postcard_creator) [![Build Status](https://travis-ci.org/abertschi/postcard_creator_wrapper.svg?branch=master)](https://travis-ci.org/abertschi/postcard_creator_wrapper) [![codecov](https://codecov.io/gh/abertschi/postcard_creator_wrapper/branch/master/graph/badge.svg)](https://codecov.io/gh/abertschi/postcard_creator_wrapper) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/970d46284d854b11ba4fb0c9cee760c7)](https://www.codacy.com/app/abertschi/postcard_creator_wrapper?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=abertschi/postcard_creator_wrapper&amp;utm_campaign=Badge_Grade) [![PyPI version](https://img.shields.io/pypi/pyversions/postcard_creator.svg)](https://pypi.python.org/pypi/postcard_creator) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A python wrapper around the Rest API of the Swiss Postcard creator  
 This project is still in early development. Feedback and support appreciated.
@@ -35,6 +37,18 @@ card = Postcard(message='', recipient=recipient, sender=sender, picture_stream=o
 w = PostcardCreator(token)
 w.send_free_card(postcard=card, mock_send=False)
 ```
+
+### Advanced configuration
+The following keyword arguments are available for advanced configuration (listed with corresponding defaults).
+
+**PostcardCreator#send_free_card()**:
+- `image_export = False`: Export postcard image to current directory (os.getcwd)
+- `image_rotate = True`: Rotate image if image height > image width
+- `image_quality_factor = 20`: Change picture quality, resulting image has 
+`image_quality_factor x (image_target_width x image_target_height)` many pixels
+- `image_target_width = 154`: Postcard image base width
+- `image_target_height = 111`: Postcard image base height
+
 ### Logging
 ```python
 import logging

@@ -39,17 +39,17 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
-
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
-
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    tests_require=['pytest', 'coverage'],
     package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']},
     extras_require={
-        'test': ['coverage', 'pytest'],
+        ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
     }
 )
