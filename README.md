@@ -1,4 +1,4 @@
-# Postcard Creator [![PyPI version](https://img.shields.io/pypi/v/postcard_creator.svg)](https://badge.fury.io/py/postcard_creator) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+# Postcard Creator [![PyPI version](https://img.shields.io/pypi/v/postcard_creator.svg)](https://badge.fury.io/py/postcard_creator) [![Build Status](https://travis-ci.org/abertschi/postcard_creator_wrapper.svg?branch=master)](https://travis-ci.org/abertschi/postcard_creator_wrapper) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A python wrapper around the Rest API of the Swiss Postcard creator  
 This project is still in early development. Feedback and support appreciated.
