@@ -2,7 +2,7 @@ sudo: false
 language: python
 
 python:
-  - "3.2"
+#  - "3.2"
   - "3.3"
   - "3.4"
   - "3.5"
@@ -10,10 +10,10 @@ python:
 
 install:
  - "pip install -r requirements.txt"
- - "pip install tox-travis"
+# - "pip install tox-travis"
 
 script:
-- tox
+- pytest
 - coverage run tests/test_token.py
 
 #script: tox
