@@ -111,6 +111,7 @@ class Token(object):
                 'Could not get access_token. Something broke. '
                 'set increase debug verbosity to debug why')
             e.server_response = response.text
+            raise e
 
         logger.debug('username/password authentication was successful')
 
