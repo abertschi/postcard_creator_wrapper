@@ -1,4 +1,6 @@
+sudo: false
 language: python
+
 python:
   - "3.2"
   - "3.3"
@@ -6,11 +8,14 @@ python:
   - "3.5"
   - "3.6"
 
-install: "pip install -r requirements.txt"
+install:
+ - "pip install -r requirements.txt"
+ - "pip install tox-travis"
 
 script:
-- pytest
+- tox
 - coverage run tests.py
+#script: tox
 
 #install:
 #  - pip install codecov
