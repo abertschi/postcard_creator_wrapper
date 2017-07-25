@@ -10,6 +10,8 @@ python:
 
 install:
  - "pip install -r requirements.txt"
+ - pip install codecov
+
 # - "pip install tox-travis"
 
 script:
@@ -19,7 +21,7 @@ script:
 #script: tox
 
 #install:
-#  - pip install codecov
+
 
 after_success:
   - codecov
