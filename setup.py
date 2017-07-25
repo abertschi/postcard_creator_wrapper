@@ -47,9 +47,9 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    tests_require=['pytest', 'coverage'],
     package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']},
     extras_require={
-        'test': ['coverage', 'pytest'],
+        ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
     }
 )
