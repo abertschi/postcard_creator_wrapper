@@ -77,6 +77,6 @@ Andrin Bertschi
 
 ## License
 
-[Apache License 2.0](LICENSE.md) © Andrin Bertschi
+[Apache License 2.0](LICENSE.md)
 
 <3
