@@ -62,14 +62,21 @@ logger = logging.getLogger('postcard_creator')
 # 30: warning
 ```
 
+## Example
+- [Postcards](https://github.com/abertschi/postcards) is a commandline interface built around this library.
+- See [tests](./tests/) for more usage examples.
+
 ## Related
 - [postcards](https://github.com/abertschi/postcards) - A CLI for the Swiss Postcard Creator
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Author
 
-Andrin Bertschi
+Andrin Bertschi  
+[https://twitter.com/andrinbertschi](https://twitter.com/andrinbertschi)
 
 ## License
 
 [Apache License 2.0](LICENSE.md) © Andrin Bertschi
+
+<3
