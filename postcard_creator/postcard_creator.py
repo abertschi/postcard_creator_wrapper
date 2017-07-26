@@ -22,14 +22,13 @@ def _trace_request(response):
     data = dump.dump_all(response)
     try:
         logger.trace(data.decode())
-    except Exception as e:
+    except Exception:
         data = str(data).replace('\\r\\n', '\r\n')
         logger.trace(data)
 
 
 class PostcardCreatorException(Exception):
     server_response = None
-    pass
 
 
 class Token(object):
@@ -58,7 +57,7 @@ class Token(object):
         try:
             self.fetch_token(username, password)
             return True
-        except PostcardCreatorException as e:
+        except PostcardCreatorException:
             return False
 
     # def store_token_to_cache(self, key, token):
@@ -106,7 +105,7 @@ class Token(object):
             self.token_expires_in = access_token['expires_in']
             self.token_fetched_at = datetime.datetime.now()
 
-        except PostcardCreatorException as ex:
+        except PostcardCreatorException:
             e = PostcardCreatorException(
                 'Could not get access_token. Something broke. '
                 'set increase debug verbosity to debug why')
