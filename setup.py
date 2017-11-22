@@ -26,12 +26,12 @@ reqs = [
     'idna',
     'requests',
     'urllib3',
-    'python_resize_image>=1.1.11'
+    'python_resize_image'
 ]
 
 setup(
     name='postcard_creator',
-    version=find_version('postcard_creator', '__init__.py'),
+    version='0.0.6', #find_version('postcard_creator', '__init__.py'),
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
@@ -53,8 +53,8 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     setup_requires=['pytest-runner'],
-    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']},
-    extras_require={
-        ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
-    }
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']}
+    # extras_require={
+    #     ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
+    # }
 )
