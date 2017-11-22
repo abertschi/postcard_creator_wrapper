@@ -65,6 +65,13 @@ logger = logging.getLogger('postcard_creator')
 - [Postcards](https://github.com/abertschi/postcards) is a commandline interface built around this library.
 - See [tests](./tests/) for more usage examples.
 
+## Test
+```sh
+pip install -r requirements-dev.txt
+pip install -e .
+pytest
+```
+
 ## Related
 - [postcards](https://github.com/abertschi/postcards) - A CLI for the Swiss Postcard Creator
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator

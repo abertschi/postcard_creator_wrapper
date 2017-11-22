@@ -1,13 +1,9 @@
 from setuptools import setup
-from pip.req import parse_requirements
 import codecs
 import os
 import re
 
 here = os.path.abspath(os.path.dirname(__file__))
-install_reqs = parse_requirements('./requirements.txt', session='hack')
-reqs = [str(ir.req) for ir in install_reqs]
-
 
 def read(*parts):
     return codecs.open(os.path.join(here, *parts), 'r').read()
@@ -21,6 +17,17 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
+
+reqs = [
+    'beautifulsoup4',
+    'Pillow',
+    'requests-toolbelt',
+    'cookies',
+    'idna',
+    'requests',
+    'urllib3',
+    'python_resize_image>=1.1.11'
+]
 
 setup(
     name='postcard_creator',
@@ -46,7 +53,6 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'coverage'],
     package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']},
     extras_require={
         ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
