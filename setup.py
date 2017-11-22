@@ -1,5 +1,4 @@
 from setuptools import setup
-from pip.req import parse_requirements
 import codecs
 import os
 import re
