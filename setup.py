@@ -1,8 +1,7 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 from pip.req import parse_requirements
 import codecs
 import os
-import sys
 import re
 
 here = os.path.abspath(os.path.dirname(__file__))
