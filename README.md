@@ -77,6 +77,8 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
+### v0.0.7, 2017-12-28
+- Fix issues with PNG images [#6](https://github.com/abertschi/postcard_creator_wrapper/pull/6)
 ### v0.0.6, 2017-11-22
 - internal changes
 - do not use requirements.txt in setup.py anymore. set all requirements in 
