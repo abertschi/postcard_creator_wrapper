@@ -416,7 +416,7 @@ class PostcardCreator(object):
 
             cover = resizeimage.resize_cover(image, [width, height], validate=True)
             with BytesIO() as f:
-                cover.save(f, 'JPEG')
+                cover.save(f, 'PNG')
                 scaled = f.getvalue()
 
             if image_export:
