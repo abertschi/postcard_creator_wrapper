@@ -11,6 +11,7 @@ import pkg_resources
 import math
 import os
 from time import gmtime, strftime
+import re
 
 LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
@@ -35,6 +36,7 @@ class Token(object):
     def __init__(self, _protocol='https://'):
         self.protocol = _protocol
         self.base = '{}account.post.ch'.format(self.protocol)
+        self.swissid = '{}login.swissid.ch'.format(self.protocol)
         self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
@@ -85,10 +87,19 @@ class Token(object):
         # if self.cache_token:
         #     self.check_token_in_cache(username, password)
 
-        session = self._create_session()
+        # try first to authenticate with Post account, if it fails, try SwissID
+        session = None
+        saml_response = None
+        try:
+            session = self._create_session()
+            saml_response = self._get_saml_response(session, username, password)
+        except PostcardCreatorException:
+            session = self._create_session()
+            saml_response = self._swissid_get_saml_response(session, username, password)
+        
         payload = {
             'RelayState': '{}postcardcreator.post.ch?inMobileApp=true&inIframe=false&lang=en'.format(self.protocol),
-            'SAMLResponse': self._get_saml_response(session, username, password)
+            'SAMLResponse': saml_response
         }
 
         response = session.post(url=self.token_url, headers=self.headers, data=payload)
@@ -139,6 +150,73 @@ class Token(object):
             raise PostcardCreatorException('Wrong user credentials')
 
         soup = BeautifulSoup(response3.text, 'html.parser')
+        saml_response = soup.find('input', {'name': 'SAMLResponse'})
+
+        if saml_response is None or saml_response.get('value') is None:
+            raise PostcardCreatorException('Username/password authentication failed. '
+                                           'Are your credentials valid?.')
+
+        return saml_response.get('value')
+
+    def _swissid_get_saml_response(self, session, username, password):
+        url = '{}/SAML/IdentityProvider/'.format(self.base)
+        query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch' + \
+                '&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
+
+        response1 = session.get(url=url + query)
+        logger.debug(' step 1, GET {}'.format(url + query))
+
+        data2 = {
+            'isPilotPhase': 'true',
+            'isiwebuserid': '',
+            'isiwebpasswd': '',
+            'externalIDP': 'externalIDP',
+            'nevisdialog': 'password'
+        }
+        response2 = session.post(url=url + query, data=data2)
+        logger.debug(' step 2, POST {}'.format(url + query))
+
+        # extract this goto parameter from the previous redirection to generate
+        # the next url request
+        goto_param = re.search('&goto=([^&]+)', response2.history[3].url).group(1)
+        newurl = 'https://login.swissid.ch/idp/json/authenticate?realm=/SESAM&locale=en&service=Sesam-LDAP&goto={}&authIndexType=service&authIndexValue=Sesam-LDAP'.format(goto_param)
+        response3 = session.post(newurl)
+        logger.debug(' step 3, POST {}'.format(newurl))
+
+        # get the JSON blob, update the username and send back
+        data4 = response3.json()
+        data4['callbacks'][2]['input'][0]['value'] = username
+        json_type = {'Content-Type': 'application/json'}
+        response4 = session.post(newurl, headers=json_type, data=json.dumps(data4))
+        logger.debug(' step 4, POST {}'.format(newurl))
+
+        # get the new JSON blob, update the password and send back
+        data5 = response4.json()
+        try:
+            data5['callbacks'][3]['input'][0]['value'] = password
+        except KeyError:
+            raise PostcardCreatorException('Oops, is your email valid?')
+        response5 = session.post(newurl, headers=json_type, data=json.dumps(data5))
+        logger.debug(' step 5, POST {}'.format(newurl))
+
+        # update session with the token we receive and request successUrl
+        try:
+            session.cookies.update({'swissid': response5.json()['tokenId']})
+            success_url = response5.json()['successUrl']
+        except KeyError:
+            raise PostcardCreatorException('Oops, is your password valid?')
+        response6 = session.get(success_url)
+        logger.debug(' step 6, GET {}'.format(success_url))
+
+        # final POST request to get the SAMLResponse
+        response7 = session.post(url=url + query)
+        logger.debug(' step 7, POST {}'.format(url + query))
+
+        if any(e.status_code is not 200 for e in [response1, response2,
+            response3, response4, response5, response6, response7]):
+            raise PostcardCreatorException('Issue during authentication process, wrong credentials?')
+
+        soup = BeautifulSoup(response7.text, 'html.parser')
         saml_response = soup.find('input', {'name': 'SAMLResponse'})
 
         if saml_response is None or saml_response.get('value') is None:
