@@ -78,7 +78,7 @@ pytest
 
 ## Release notes
 ### v0.0.8, 2018-03-28
-- Migrate to API 2.2
+- Migrate to postcardcreator API 2.2
 ### v0.0.7, 2017-12-28
 - Fix issues with PNG images [#6](https://github.com/abertschi/postcard_creator_wrapper/pull/6)
 ### v0.0.6, 2017-11-22
