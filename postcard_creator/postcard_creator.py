@@ -26,8 +26,10 @@ def _trace_request(response):
         data = str(data).replace('\\r\\n', '\r\n')
         logger.trace(data)
 
+
 def _encode_text(text):
-    return text.encode('ascii', 'xmlcharrefreplace').decode('utf-8') # escape umlaute
+    return text.encode('ascii', 'xmlcharrefreplace').decode('utf-8')  # escape umlaute
+
 
 class PostcardCreatorException(Exception):
     server_response = None
@@ -242,7 +244,7 @@ class Postcard(object):
             .replace('{sender_address}', _encode_text(self.sender.street)) \
             .replace('{sender_zip_code}', str(self.sender.zip_code)) \
             .replace('{sender_place}', _encode_text(self.sender.place)) \
-            .replace('{sender_country}', self.sender.country) \
+            .replace('{sender_country}', _encode_text(self.sender.country)) \
             .replace('{message}',
                      _encode_text(self.message))
 
