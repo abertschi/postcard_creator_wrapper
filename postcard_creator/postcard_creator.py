@@ -26,7 +26,7 @@ def _trace_request(response):
         data = str(data).replace('\\r\\n', '\r\n')
         logger.trace(data)
 
-def _encode_text(text)
+def _encode_text(text):
     return text.encode('ascii', 'xmlcharrefreplace').decode('utf-8') # escape umlaute
 
 class PostcardCreatorException(Exception):
