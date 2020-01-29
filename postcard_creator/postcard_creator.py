@@ -27,6 +27,10 @@ def _trace_request(response):
         logger.trace(data)
 
 
+def _encode_text(text):
+    return text.encode('ascii', 'xmlcharrefreplace').decode('utf-8')  # escape umlaute
+
+
 class PostcardCreatorException(Exception):
     server_response = None
 
@@ -228,21 +232,21 @@ class Postcard(object):
     def get_backpage(self):
         svg = self.backpage_layout
         return svg \
-            .replace('{first_name}', self.recipient.prename) \
-            .replace('{last_name}', self.recipient.lastname) \
-            .replace('{company}', self.recipient.company) \
-            .replace('{company_addition}', self.recipient.company_addition) \
-            .replace('{street}', self.recipient.street) \
+            .replace('{first_name}', _encode_text(self.recipient.prename)) \
+            .replace('{last_name}', _encode_text(self.recipient.lastname)) \
+            .replace('{company}', _encode_text(self.recipient.company)) \
+            .replace('{company_addition}', _encode_text(self.recipient.company_addition)) \
+            .replace('{street}', _encode_text(self.recipient.street)) \
             .replace('{zip_code}', str(self.recipient.zip_code)) \
-            .replace('{place}', self.recipient.place) \
-            .replace('{sender_company}', self.sender.company) \
-            .replace('{sender_name}', self.sender.prename + ' ' + self.sender.lastname) \
-            .replace('{sender_address}', self.sender.street) \
+            .replace('{place}', _encode_text(self.recipient.place)) \
+            .replace('{sender_company}', _encode_text(self.sender.company)) \
+            .replace('{sender_name}', _encode_text(self.sender.prename) + ' ' + _encode_text(self.sender.lastname)) \
+            .replace('{sender_address}', _encode_text(self.sender.street)) \
             .replace('{sender_zip_code}', str(self.sender.zip_code)) \
-            .replace('{sender_place}', self.sender.place) \
-            .replace('{sender_country}', self.sender.country) \
+            .replace('{sender_place}', _encode_text(self.sender.place)) \
+            .replace('{sender_country}', _encode_text(self.sender.country)) \
             .replace('{message}',
-                     self.message.encode('ascii', 'xmlcharrefreplace').decode('utf-8'))  # escape umlaute
+                     _encode_text(self.message))
 
 
 def _send_free_card_defaults(func):
