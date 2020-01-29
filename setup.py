@@ -1,3 +1,8 @@
+try: # for pip >= 10
+    from pip._internal.req import parse_requirements
+except ImportError: # for pip <= 9.0.3
+    from pip.req import parse_requirements
+
 from setuptools import setup
 import codecs
 import os
@@ -31,7 +36,7 @@ reqs = [
 
 setup(
     name='postcard_creator',
-    version='0.0.7', #find_version('postcard_creator', '__init__.py'),
+    version='1.0', #find_version('postcard_creator', '__init__.py'),
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',

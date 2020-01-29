@@ -1,17 +1,22 @@
-import logging
-import requests
-import json
 from bs4 import BeautifulSoup
 from requests_toolbelt.utils import dump
-import datetime
 from PIL import Image
 from io import BytesIO
 from resizeimage import resizeimage
+from time import gmtime, strftime
+
+import logging
+import requests
+import json
+import datetime
 import pkg_resources
 import math
 import os
+<<<<<<< HEAD
 from time import gmtime, strftime
 import re
+=======
+>>>>>>> develop
 
 LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
@@ -28,6 +33,10 @@ def _trace_request(response):
         logger.trace(data)
 
 
+def _encode_text(text):
+    return text.encode('ascii', 'xmlcharrefreplace').decode('utf-8')  # escape umlaute
+
+
 class PostcardCreatorException(Exception):
     server_response = None
 
@@ -39,12 +48,11 @@ class Token(object):
         self.swissid = '{}login.swissid.ch'.format(self.protocol)
         self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
+                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
                           'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Origin': '{}account.post.ch'.format(self.protocol)
         }
-
-        # cache_filename = 'pcc_cache.json'
 
         self.token = None
         self.token_type = None
@@ -61,22 +69,6 @@ class Token(object):
             return True
         except PostcardCreatorException:
             return False
-
-    # def store_token_to_cache(self, key, token):
-    #
-    # def check_token_in_cache(self, username, password):
-    #     tmp_dir = tempfile.gettempdir()
-    #     tmp_path = os.path.join(tmp_dir, self.cache_filename)
-    #     tmp_file = Path(tmp_path)
-    #
-    #     if tmp_file.exists():
-    #         cache_content = open(tmp_file, "r").read()
-    #         cache = []
-    #         try:
-    #             cache = json.load(cache_content)
-    #         except Exception:
-    #             return None
-    #
 
     def fetch_token(self, username, password):
         logger.debug('fetching postcard account token')
@@ -306,21 +298,21 @@ class Postcard(object):
     def get_backpage(self):
         svg = self.backpage_layout
         return svg \
-            .replace('{first_name}', self.recipient.prename) \
-            .replace('{last_name}', self.recipient.lastname) \
-            .replace('{company}', self.recipient.company) \
-            .replace('{company_addition}', self.recipient.company_addition) \
-            .replace('{street}', self.recipient.street) \
+            .replace('{first_name}', _encode_text(self.recipient.prename)) \
+            .replace('{last_name}', _encode_text(self.recipient.lastname)) \
+            .replace('{company}', _encode_text(self.recipient.company)) \
+            .replace('{company_addition}', _encode_text(self.recipient.company_addition)) \
+            .replace('{street}', _encode_text(self.recipient.street)) \
             .replace('{zip_code}', str(self.recipient.zip_code)) \
-            .replace('{place}', self.recipient.place) \
-            .replace('{sender_company}', self.sender.company) \
-            .replace('{sender_name}', self.sender.prename + ' ' + self.sender.lastname) \
-            .replace('{sender_address}', self.sender.street) \
+            .replace('{place}', _encode_text(self.recipient.place)) \
+            .replace('{sender_company}', _encode_text(self.sender.company)) \
+            .replace('{sender_name}', _encode_text(self.sender.prename) + ' ' + _encode_text(self.sender.lastname)) \
+            .replace('{sender_address}', _encode_text(self.sender.street)) \
             .replace('{sender_zip_code}', str(self.sender.zip_code)) \
-            .replace('{sender_place}', self.sender.place) \
-            .replace('{sender_country}', self.sender.country) \
+            .replace('{sender_place}', _encode_text(self.sender.place)) \
+            .replace('{sender_country}', _encode_text(self.sender.country)) \
             .replace('{message}',
-                     self.message.encode('ascii', 'xmlcharrefreplace').decode('utf-8'))  # escape umlaute
+                     _encode_text(self.message))
 
 
 def _send_free_card_defaults(func):
@@ -341,7 +333,7 @@ class PostcardCreator(object):
             raise PostcardCreatorException('No Token given')
         self.token = token
         self.protocol = _protocol
-        self.host = '{}postcardcreator.post.ch/rest/2.1'.format(self.protocol)
+        self.host = '{}postcardcreator.post.ch/rest/2.2'.format(self.protocol)
         self._session = self._create_session()
 
     def _get_headers(self):
@@ -406,7 +398,7 @@ class PostcardCreator(object):
         card_id = self._create_card(user)
 
         picture_stream = self._rotate_and_scale_image(postcard.picture_stream, **kwargs)
-        asset_response = self._upload_asset(user, picture_stream=picture_stream)
+        asset_response = self._upload_asset(user, card_id=card_id, picture_stream=picture_stream)
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
         self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(asset_id=asset_response['asset_id']))
         self._set_svg_page(2, user_id, card_id, postcard.get_backpage())
@@ -432,9 +424,9 @@ class PostcardCreator(object):
         mailing_response = self._do_op('post', endpoint, json=mailing_payload)
         return mailing_response.headers['Location'].partition('mailings/')[2]
 
-    def _upload_asset(self, user, picture_stream):
+    def _upload_asset(self, user, card_id, picture_stream):
         logger.debug('uploading postcard asset')
-        endpoint = '/users/{}/assets'.format(user["userId"])
+        endpoint = '/users/{}/mailings/{}/assets'.format(user["userId"], card_id)
 
         files = {
             'title': (None, 'Title of image'),

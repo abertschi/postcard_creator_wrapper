@@ -108,19 +108,19 @@ def test_token_has_valid_credential():
 
 
 def test_pcc_send_free_card_successful():
-
     # work in progress
     pcc = create_postcard_creator()
-    sender = Sender(prename='prename',
-                    lastname='lastname',
-                    street='My street 11',
-                    place='place',
+    sender = Sender(prename='prename à',  # some non-ascii chars test
+                    lastname='lastname ä',
+                    street='My street 11 ü',
+                    place='place ä',
+                    country='country ää',
                     zip_code=8000)
 
-    recipient = Recipient(prename='prename',
-                          lastname='lastname',
-                          street='My street 11',
-                          place='place',
+    recipient = Recipient(prename='prename à',  # some non-ascii chars test
+                          lastname='lastname ä',
+                          street='My street 11 ü',
+                          place='place ä',
                           zip_code=8000)
 
     file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'asset.jpg')
@@ -172,4 +172,4 @@ def test_pcc_send_free_card_successful():
     adapter_pcc.register_uri('POST', URL_USERS_MAILINGS,
                              reason='', text=json.dumps(mailings), headers=mailing_headers)
 
-    #pcc.send_free_card(postcard)
+    # pcc.send_free_card(postcard)
