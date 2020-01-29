@@ -2,8 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/postcard_creator.svg)](https://badge.fury.io/py/postcard_creator) [![Build Status](https://travis-ci.org/abertschi/postcard_creator_wrapper.svg?branch=master)](https://travis-ci.org/abertschi/postcard_creator_wrapper) [![codecov](https://codecov.io/gh/abertschi/postcard_creator_wrapper/branch/master/graph/badge.svg)](https://codecov.io/gh/abertschi/postcard_creator_wrapper) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/970d46284d854b11ba4fb0c9cee760c7)](https://www.codacy.com/app/abertschi/postcard_creator_wrapper?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=abertschi/postcard_creator_wrapper&amp;utm_campaign=Badge_Grade) [![PyPI version](https://img.shields.io/pypi/pyversions/postcard_creator.svg)](https://pypi.python.org/pypi/postcard_creator) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
-A python wrapper around the Rest API of the Swiss Postcard creator  
-This project is still in early development. Feedback and support appreciated.
+A python wrapper around the Rest API of the Swiss Postcard creator.
 
 ## Installation
 ```sh
@@ -66,9 +65,26 @@ logger = logging.getLogger('postcard_creator')
 - [Postcards](https://github.com/abertschi/postcards) is a commandline interface built around this library.
 - See [tests](./tests/) for more usage examples.
 
+## Test
+```sh
+pip install -r requirements-dev.txt
+pip install -e .
+pytest
+```
+
 ## Related
 - [postcards](https://github.com/abertschi/postcards) - A CLI for the Swiss Postcard Creator
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
+
+## Release notes
+### v0.0.8, 2018-03-28
+- Migrate to postcardcreator API 2.2
+### v0.0.7, 2017-12-28
+- Fix issues with PNG images [#6](https://github.com/abertschi/postcard_creator_wrapper/pull/6)
+### v0.0.6, 2017-11-22
+- internal changes
+- do not use requirements.txt in setup.py anymore. set all requirements in 
+install_requires without explicit version numbers
 
 ## Author
 

@@ -9,9 +9,6 @@ import os
 import re
 
 here = os.path.abspath(os.path.dirname(__file__))
-install_reqs = parse_requirements('./requirements.txt', session='hack')
-reqs = [str(ir.req) for ir in install_reqs]
-
 
 def read(*parts):
     return codecs.open(os.path.join(here, *parts), 'r').read()
@@ -26,9 +23,20 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
+reqs = [
+    'beautifulsoup4',
+    'Pillow',
+    'requests-toolbelt',
+    'cookies',
+    'idna',
+    'requests',
+    'urllib3',
+    'python_resize_image'
+]
+
 setup(
     name='postcard_creator',
-    version=find_version('postcard_creator', '__init__.py'),
+    version='0.0.8', #find_version('postcard_creator', '__init__.py'),
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
@@ -50,9 +58,8 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'coverage'],
-    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']},
-    extras_require={
-        ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
-    }
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']}
+    # extras_require={
+    #     ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
+    # }
 )
