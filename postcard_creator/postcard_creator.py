@@ -1,16 +1,17 @@
-import logging
-import requests
-import json
 from bs4 import BeautifulSoup
 from requests_toolbelt.utils import dump
-import datetime
 from PIL import Image
 from io import BytesIO
 from resizeimage import resizeimage
+from time import gmtime, strftime
+
+import logging
+import requests
+import json
+import datetime
 import pkg_resources
 import math
 import os
-from time import gmtime, strftime
 
 LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
@@ -41,12 +42,11 @@ class Token(object):
         self.base = '{}account.post.ch'.format(self.protocol)
         self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
+                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
                           'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Origin': '{}account.post.ch'.format(self.protocol)
         }
-
-        # cache_filename = 'pcc_cache.json'
 
         self.token = None
         self.token_type = None
@@ -63,22 +63,6 @@ class Token(object):
             return True
         except PostcardCreatorException:
             return False
-
-    # def store_token_to_cache(self, key, token):
-    #
-    # def check_token_in_cache(self, username, password):
-    #     tmp_dir = tempfile.gettempdir()
-    #     tmp_path = os.path.join(tmp_dir, self.cache_filename)
-    #     tmp_file = Path(tmp_path)
-    #
-    #     if tmp_file.exists():
-    #         cache_content = open(tmp_file, "r").read()
-    #         cache = []
-    #         try:
-    #             cache = json.load(cache_content)
-    #         except Exception:
-    #             return None
-    #
 
     def fetch_token(self, username, password):
         logger.debug('fetching postcard account token')
