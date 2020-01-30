@@ -1,16 +1,15 @@
-import logging
-import requests
-import json
-from bs4 import BeautifulSoup
 from requests_toolbelt.utils import dump
-import datetime
 from PIL import Image
 from io import BytesIO
 from resizeimage import resizeimage
+from time import gmtime, strftime
+
+import logging
+import datetime
 import pkg_resources
 import math
 import os
-from time import gmtime, strftime
+import requests
 
 LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
@@ -18,7 +17,7 @@ logging.addLevelName(LOGGING_TRACE_LVL, 'TRACE')
 setattr(logger, 'trace', lambda *args: logger.log(LOGGING_TRACE_LVL, *args))
 
 
-def _trace_request(response):
+def _dump_request(response):
     data = dump.dump_all(response)
     try:
         logger.trace(data.decode())
@@ -33,131 +32,6 @@ def _encode_text(text):
 
 class PostcardCreatorException(Exception):
     server_response = None
-
-
-class Token(object):
-    def __init__(self, _protocol='https://'):
-        self.protocol = _protocol
-        self.base = '{}account.post.ch'.format(self.protocol)
-        self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
-            'Origin': '{}account.post.ch'.format(self.protocol)
-        }
-
-        # cache_filename = 'pcc_cache.json'
-
-        self.token = None
-        self.token_type = None
-        self.token_expires_in = None
-        self.token_fetched_at = None
-        self.cache_token = False
-
-    def _create_session(self):
-        return requests.Session()
-
-    def has_valid_credentials(self, username, password):
-        try:
-            self.fetch_token(username, password)
-            return True
-        except PostcardCreatorException:
-            return False
-
-    # def store_token_to_cache(self, key, token):
-    #
-    # def check_token_in_cache(self, username, password):
-    #     tmp_dir = tempfile.gettempdir()
-    #     tmp_path = os.path.join(tmp_dir, self.cache_filename)
-    #     tmp_file = Path(tmp_path)
-    #
-    #     if tmp_file.exists():
-    #         cache_content = open(tmp_file, "r").read()
-    #         cache = []
-    #         try:
-    #             cache = json.load(cache_content)
-    #         except Exception:
-    #             return None
-    #
-
-    def fetch_token(self, username, password):
-        logger.debug('fetching postcard account token')
-
-        if username is None or password is None:
-            raise PostcardCreatorException('No username/ password given')
-
-        # if self.cache_token:
-        #     self.check_token_in_cache(username, password)
-
-        session = self._create_session()
-        payload = {
-            'RelayState': '{}postcardcreator.post.ch?inMobileApp=true&inIframe=false&lang=en'.format(self.protocol),
-            'SAMLResponse': self._get_saml_response(session, username, password)
-        }
-
-        response = session.post(url=self.token_url, headers=self.headers, data=payload)
-        logger.debug(' post {}'.format(self.token_url))
-        _trace_request(response)
-
-        try:
-            if response.status_code is not 200:
-                raise PostcardCreatorException()
-
-            access_token = json.loads(response.text)
-            self.token = access_token['access_token']
-            self.token_type = access_token['token_type']
-            self.token_expires_in = access_token['expires_in']
-            self.token_fetched_at = datetime.datetime.now()
-
-        except PostcardCreatorException:
-            e = PostcardCreatorException(
-                'Could not get access_token. Something broke. '
-                'set increase debug verbosity to debug why')
-            e.server_response = response.text
-            raise e
-
-        logger.debug('username/password authentication was successful')
-
-    def _get_saml_response(self, session, username, password):
-        url = '{}/SAML/IdentityProvider/'.format(self.base)
-        query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch' + \
-                '&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
-        data = {
-            'isiwebuserid': username,
-            'isiwebpasswd': password,
-            'confirmLogin': ''
-        }
-        response1 = session.get(url=url + query, headers=self.headers)
-        _trace_request(response1)
-        logger.debug(' get {}'.format(url))
-
-        response2 = session.post(url=url + query, headers=self.headers, data=data)
-        _trace_request(response2)
-        logger.debug(' post {}'.format(url))
-
-        response3 = session.post(url=url + query, headers=self.headers)
-        _trace_request(response3)
-        logger.debug(' post {}'.format(url))
-
-        if any(e.status_code is not 200 for e in [response1, response2, response3]):
-            raise PostcardCreatorException('Wrong user credentials')
-
-        soup = BeautifulSoup(response3.text, 'html.parser')
-        saml_response = soup.find('input', {'name': 'SAMLResponse'})
-
-        if saml_response is None or saml_response.get('value') is None:
-            raise PostcardCreatorException('Username/password authentication failed. '
-                                           'Are your credentials valid?.')
-
-        return saml_response.get('value')
-
-    def to_json(self):
-        return {
-            'fetched_at': self.token_fetched_at,
-            'token': self.token,
-            'expires_in': self.token_expires_in,
-            'type': self.token_type,
-        }
 
 
 class Sender(object):
@@ -287,7 +161,7 @@ class PostcardCreator(object):
 
         logger.debug('{}: {}'.format(method, url))
         response = self._session.request(method, url, **kwargs)
-        _trace_request(response)
+        _dump_request(response)
 
         if response.status_code not in [200, 201, 204]:
             e = PostcardCreatorException('error in request {} {}. status_code: {}'
@@ -431,6 +305,10 @@ class PostcardCreator(object):
 
         return scaled
 
+
+# expose Token class in this module for backwards compatibility
+from postcard_creator.token import Token as T
+Token = T
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,

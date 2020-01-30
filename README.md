@@ -48,6 +48,9 @@ The following keyword arguments are available for advanced configuration (listed
 - `image_target_width = 154`: Postcard image base width
 - `image_target_height = 111`: Postcard image base height
 
+**Token#fetch_token()**:
+- `method = 'mixed'`: Choose what authentication to use. `['mixed', 'legacy', 'swissid']`. `'mixed'` tries both.
+
 ### Logging
 ```python
 import logging
@@ -77,10 +80,18 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
+### v1.0, 2020-01-29
+- support for swissid authentication
+- Method `Token#has_valid_credentials` and `Token#fetch_token` introduce a parameter `method` 
+  which can be set to one of these vals: `['mixed', 'legacy', 'swissid']`. `'mixed'` is default and tries both
+  authentication procedures 
+
 ### v0.0.8, 2018-03-28
 - Migrate to postcardcreator API 2.2
+
 ### v0.0.7, 2017-12-28
 - Fix issues with PNG images [#6](https://github.com/abertschi/postcard_creator_wrapper/pull/6)
+
 ### v0.0.6, 2017-11-22
 - internal changes
 - do not use requirements.txt in setup.py anymore. set all requirements in 
