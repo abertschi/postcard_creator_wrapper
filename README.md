@@ -48,6 +48,9 @@ The following keyword arguments are available for advanced configuration (listed
 - `image_target_width = 154`: Postcard image base width
 - `image_target_height = 111`: Postcard image base height
 
+**Token#fetch_token()**:
+- `method = 'mixed'`: Choose what authentication to use. `['mixed', 'legacy', 'swissid']`. `'mixed'` tries both.
+
 ### Logging
 ```python
 import logging
@@ -79,6 +82,9 @@ pytest
 ## Release notes
 ### v1.0, 2020-01-29
 - support for swissid authentication
+- Method `Token#has_valid_credentials` and `Token#fetch_token` introduce a parameter `method` 
+  which can be set to one of these vals: `['mixed', 'legacy', 'swissid']`. `'mixed'` is default and tries both
+  authentication procedures 
 
 ### v0.0.8, 2018-03-28
 - Migrate to postcardcreator API 2.2

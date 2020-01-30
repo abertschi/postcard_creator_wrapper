@@ -67,33 +67,41 @@ class Token(object):
         self.token_fetched_at = None
         self.cache_token = False
 
-    def has_valid_credentials(self, username, password):
+    def has_valid_credentials(self, username, password, method='mixed'):
         try:
-            self.fetch_token(username, password)
+            self.fetch_token(username, password, method=method)
             return True
         except PostcardCreatorException:
             return False
 
-    def fetch_token(self, username, password):
+    def fetch_token(self, username, password, method='mixed'):
         logger.debug('fetching postcard account token')
 
         if username is None or password is None:
             raise PostcardCreatorException('No username/ password given')
 
+        methods = ['mixed', 'legacy', 'swissid']
+        if method not in methods:
+            raise PostcardCreatorException('unknown method. choose from: ' + methods)
+
         session = None
         saml_response = None
-        try:
+        if method != 'swissid':
             logging.info("using legacy username password authentication")
-            session = self._create_session()
-            saml_response = self._get_legacy_saml_response(session, username, password)
-        except PostcardCreatorException:
-            logging.info("legacy username password authentication failed")
-            logging.info("using swissid username password authentication")
-
-            session = self._create_session()
             try:
+                session = self._create_session()
+                saml_response = self._get_legacy_saml_response(session, username, password)
+            except PostcardCreatorException as e:
+                logging.info("legacy username password authentication failed")
+                logging.error(e)
+
+        if method != 'legacy':
+            logging.info("using swissid username password authentication")
+            try:
+                session = self._create_session()
                 saml_response = self._get_swissid_saml_response(session, username, password)
             except PostcardCreatorException as e:
+                logging.info("swissid username password authentication failed")
                 logging.error(e)
 
         payload = {
@@ -176,11 +184,9 @@ class Token(object):
                                data=step1_payload, allow_redirects=True,
                                headers=swissid_headers)
         _log_and_dump(step1_r)
-
         if len(step1_r.history) == 0:
             raise PostcardCreatorException('step 1 in swissid authentication requires redirections. not avalable' +
                                            'did something break?')
-
         step1_goto_url = step1_r.history[len(step1_r.history) - 1]
 
         logger.debug("--- 2. follow redirects and get goto_param")
