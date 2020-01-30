@@ -86,16 +86,18 @@ class Token(object):
 
         session = None
         saml_response = None
+        success = False
         if method != 'swissid':
             logging.info("using legacy username password authentication")
             try:
                 session = self._create_session()
                 saml_response = self._get_legacy_saml_response(session, username, password)
+                success = True
             except PostcardCreatorException as e:
                 logging.info("legacy username password authentication failed")
                 logging.error(e)
 
-        if method != 'legacy':
+        if method != 'legacy' and not success:
             logging.info("using swissid username password authentication")
             try:
                 session = self._create_session()
