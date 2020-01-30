@@ -80,7 +80,7 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
-### v1.0, 2020-01-29
+### v1.1, 2020-01-30
 - support for swissid authentication
 - Method `Token#has_valid_credentials` and `Token#fetch_token` introduce a parameter `method` 
   which can be set to one of these vals: `['mixed', 'legacy', 'swissid']`. `'mixed'` is default and tries both

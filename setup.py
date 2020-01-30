@@ -36,7 +36,7 @@ reqs = [
 
 setup(
     name='postcard_creator',
-    version='1.0', #find_version('postcard_creator', '__init__.py'),
+    version='1.1', #find_version('postcard_creator', '__init__.py'),
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
