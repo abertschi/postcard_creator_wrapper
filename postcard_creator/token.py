@@ -95,7 +95,7 @@ class Token(object):
                 success = True
             except PostcardCreatorException as e:
                 logging.info("legacy username password authentication failed")
-                logging.error(e)
+                logging.info(e)
 
         if method != 'legacy' and not success:
             logging.info("using swissid username password authentication")
@@ -104,7 +104,7 @@ class Token(object):
                 saml_response = self._get_swissid_saml_response(session, username, password)
             except PostcardCreatorException as e:
                 logging.info("swissid username password authentication failed")
-                logging.error(e)
+                logging.info(e)
 
         payload = {
             'RelayState': '{}postcardcreator.post.ch?inMobileApp=true&inIframe=false&lang=en'.format(self.protocol),
@@ -244,7 +244,7 @@ class Token(object):
         step5_r = session.post(step3_url, json=step5_json, headers=swissid_headers)
         _log_and_dump(step5_r)
 
-        logger.debug("--- 6. follow a redirects to get SAML endpoint")
+        logger.debug("--- 6. follow redirects to get SAML endpoint")
         step6_r = session.get(urllib.parse.unquote(goto_param), allow_redirects=True, headers=swissid_headers)
         _log_and_dump(step6_r)
 
