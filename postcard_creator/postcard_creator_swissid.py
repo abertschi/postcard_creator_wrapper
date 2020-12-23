@@ -49,6 +49,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
     def _create_session(self):
         return requests.Session()
 
+    # XXX: we share some functionality with legacy wrapper here
+    # however, it is little and not worth the lack of extensibility if generalized in super class
     def _do_op(self, method, endpoint, **kwargs):
         url = self.host + endpoint
         if 'headers' not in kwargs or kwargs['headers'] is None:
