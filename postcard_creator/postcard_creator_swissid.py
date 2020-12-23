@@ -128,15 +128,19 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             'paid': False,
             'recipient': _format_recipient(postcard.recipient),
             'sender': _format_sender(postcard.sender),
+
             # XXX: test if 'text' is still supported or if text must be converted to an image
             # 'text': _encode_text(postcard.message),
             'text': '',
+
             # XXX: JPEG image data, JFIF standard 1.01, segment length 16,
             # baseline, precision 8, 720x744, components 3
             'textImage': img_text_base64,
+
             # XXX: JPEG segment length 16, baseline, precision 8,
             # 1819x1311, components 3
             'image': img_base64,
+
             'stamp': None
         }
 

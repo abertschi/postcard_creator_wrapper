@@ -36,7 +36,7 @@ reqs = [
 
 setup(
     name='postcard_creator',
-    version='1.1', #find_version('postcard_creator', '__init__.py'),
+    version='2.0', #find_version('postcard_creator', '__init__.py'),
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
@@ -56,9 +56,11 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     setup_requires=['pytest-runner'],
-    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']}
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg', 'OpenSans-Regular.ttf']}
     # extras_require={
     #     ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
     # }
