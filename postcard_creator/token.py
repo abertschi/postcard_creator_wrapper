@@ -97,6 +97,7 @@ class Token(object):
 
         success = False
         access_token = None
+        implementation_type = ''
         if method != 'swissid':
             logging.info("using legacy username password authentication")
             session = self._create_session()
@@ -104,6 +105,7 @@ class Token(object):
                 access_token = self._get_access_token_legacy(session, username, password)
                 logger.debug('legacy username/password authentication was successful')
                 success = True
+                implementation_type = 'swissid'
             except Exception as e:
                 logging.info("legacy username password authentication failed")
                 logging.info(e)
@@ -119,6 +121,7 @@ class Token(object):
                 session = self._create_session()
                 access_token = self._get_access_token_swissid(session, username, password)
                 logger.debug('swissid username/password authentication was successful')
+                implementation_type = 'legacy'
             except Exception as e:
                 logging.info("swissid username password authentication failed")
                 logging.info(e)
@@ -130,6 +133,7 @@ class Token(object):
             self.token_type = access_token['token_type']
             self.token_expires_in = access_token['expires_in']
             self.token_fetched_at = datetime.datetime.now()
+            self.implementation_type = implementation_type
             logging.info("access_token successfully fetched")
 
         except Exception as e:
