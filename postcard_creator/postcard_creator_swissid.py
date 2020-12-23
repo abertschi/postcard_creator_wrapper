@@ -63,8 +63,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         _dump_request(response)
 
         if response.status_code not in [200, 201, 204]:
-            e = PostcardCreatorException('error in request {} {}. status_code: {}'
-                                         .format(method, url, response.status_code))
+            e = PostcardCreatorException('error in request {} {}. status_code: {}, text: {}'
+                                         .format(method, url, response.status_code, response.text or ''))
             e.server_response = response.text
             raise e
         return response
@@ -108,7 +108,12 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         if not postcard:
             raise PostcardCreatorException('Postcard must be set')
         postcard.validate()
-        img_base64 = base64.b64encode(_rotate_and_scale_image(postcard.picture_stream, **kwargs))
+
+        # XXX: endpoint no longer supports user specified w/h
+        kwargs['image_target_width'] = 1819
+        kwargs['image_quality_factor'] = 1
+        kwargs['image_target_height'] = 1311
+        img_base64 = base64.b64encode(_rotate_and_scale_image(postcard.picture_stream, **kwargs)).decode('ascii')
 
         endpoint = '/card/upload'
         payload = {
@@ -120,18 +125,24 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             # XXX: test if 'text' is still supported or if text must be converted to an image
             'text': _encode_text(postcard.message),
 
-            # XXX: JPEG image data, JFIF standard 1.01, segment length 16, baseline, precision 8, 720x744, components 3
+            # XXX: JPEG image data, JFIF standard 1.01, segment length 16,
+            # baseline, precision 8, 720x744, components 3
             'textImage': None,
 
-            # XXX: JPEG segment length 16, baseline, precision 8, 1819x1311, components 3
+            # XXX: JPEG segment length 16, baseline, precision 8,
+            # 1819x1311, components 3
             'image': img_base64,
             'stamp': None
         }
-        if mock_send or True:
-            logger.info(f'mock_send=True, endpoint: {endpoint}, payload: {payload}')
+        if mock_send:
+            copy = dict(payload)
+            copy['textImage'] = 'omitted'
+            copy['image'] = 'omitted'
+            logger.info(f'mock_send=True, endpoint: {endpoint}, payload: {copy}')
             return False
 
         payload = self._do_op('post', endpoint, json=payload).json()
-        self._validate_model_response(endpoint, payload)
+        logger.debug(f'{endpoint} with response {payload}')
 
-        pass
+        self._validate_model_response(endpoint, payload)
+        return payload
