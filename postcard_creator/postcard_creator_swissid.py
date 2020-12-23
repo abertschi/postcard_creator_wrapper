@@ -178,6 +178,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         font_w, font_h = font.getsize(text)
         lines = textwrap.wrap(text, width=text_width)
 
+        # XXX: trivial centering: center text if enough space,
+        # otherwise use smaller font and overflow if needed
         text_y_start = center_y(lines, font_h)
         if text_y_start == 0:
             # fall back if too much text
