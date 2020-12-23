@@ -113,9 +113,16 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             'paid': False,
             'recipient': _format_recipient(postcard.recipient),
             'sender': _format_sender(postcard.sender),
-            'text': 'WIP',
+            'text': '',
+            # textImage.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 720x744, components 3
             'textImage': 'WIP',
+            # image.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 1819x1311, components 3
+            'image': 'blob',
             'stamp': None
+
+            # var r = h(e), n = new java.io.ByteArrayOutputStream,
+            # i = new android.util.Base64OutputStream(n, android.util.Base64.NO_WRAP);
+            # this.android.compress(r, t, i);
         }
 
         # XXX: finish upload
