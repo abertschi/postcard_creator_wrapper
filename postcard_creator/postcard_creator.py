@@ -93,7 +93,7 @@ def _send_free_card_defaults(func):
 
 
 def _rotate_and_scale_image(file, image_target_width=154, image_target_height=111,
-                            image_quality_factor=20, image_rotate=True, image_export=False, img_format='PNG'):
+                            image_quality_factor=20, image_rotate=True, image_export=False, img_format='PNG', **kwargs):
     with Image.open(file) as image:
         if image_rotate and image.width < image.height:
             image = image.rotate(90, expand=True)

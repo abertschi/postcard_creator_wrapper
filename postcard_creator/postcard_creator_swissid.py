@@ -1,9 +1,15 @@
 import base64
+import io
+import os
+import textwrap
+from time import gmtime, strftime
 
+import pkg_resources
 import requests
+from PIL import Image, ImageDraw, ImageFont
 
-from postcard_creator.postcard_creator import PostcardCreatorException, Recipient, Sender, \
-    _dump_request, _encode_text, _send_free_card_defaults, logger, PostcardCreatorBase, _rotate_and_scale_image
+from postcard_creator.postcard_creator import PostcardCreatorBase, PostcardCreatorException, Recipient, Sender, \
+    _dump_request, _encode_text, _rotate_and_scale_image, _send_free_card_defaults, logger
 
 
 def _format_sender(sender: Sender):
@@ -102,9 +108,6 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
 
     @_send_free_card_defaults
     def send_free_card(self, postcard, mock_send=True, **kwargs):
-        if not self.has_free_postcard():
-            raise PostcardCreatorException('Limit of free postcards exceeded. Try again tomorrow at '
-                                           + self.get_quota()['next'])
         if not postcard:
             raise PostcardCreatorException('Postcard must be set')
         postcard.validate()
@@ -113,7 +116,11 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         kwargs['image_target_width'] = 1819
         kwargs['image_quality_factor'] = 1
         kwargs['image_target_height'] = 1311
-        img_base64 = base64.b64encode(_rotate_and_scale_image(postcard.picture_stream, **kwargs)).decode('ascii')
+        img_base64 = base64.b64encode(_rotate_and_scale_image(postcard.picture_stream,
+                                                              img_format='jpeg',
+                                                              **kwargs)).decode('ascii')
+
+        img_text_base64 = base64.b64encode(self._create_text_image(postcard.message)).decode('ascii')
 
         endpoint = '/card/upload'
         payload = {
@@ -121,19 +128,18 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             'paid': False,
             'recipient': _format_recipient(postcard.recipient),
             'sender': _format_sender(postcard.sender),
-
             # XXX: test if 'text' is still supported or if text must be converted to an image
-            'text': _encode_text(postcard.message),
-
+            # 'text': _encode_text(postcard.message),
+            'text': '',
             # XXX: JPEG image data, JFIF standard 1.01, segment length 16,
             # baseline, precision 8, 720x744, components 3
-            'textImage': None,
-
+            'textImage': img_text_base64,
             # XXX: JPEG segment length 16, baseline, precision 8,
             # 1819x1311, components 3
             'image': img_base64,
             'stamp': None
         }
+
         if mock_send:
             copy = dict(payload)
             copy['textImage'] = 'omitted'
@@ -141,8 +147,60 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             logger.info(f'mock_send=True, endpoint: {endpoint}, payload: {copy}')
             return False
 
+        if not self.has_free_postcard():
+            raise PostcardCreatorException('Limit of free postcards exceeded. Try again tomorrow at '
+                                           + self.get_quota()['next'])
+
         payload = self._do_op('post', endpoint, json=payload).json()
         logger.debug(f'{endpoint} with response {payload}')
 
         self._validate_model_response(endpoint, payload)
         return payload
+
+    @staticmethod
+    def _create_text_image(text, w=720, h=744,
+                           text_width=60,
+                           font_size=23,
+                           canvas_bg='white', canvas_fg='black',
+                           image_export=True,
+                           img_format='jpeg', **kwargs):
+        def load_font(size):
+            return ImageFont.truetype(pkg_resources.resource_stream(__name__, 'OpenSans-Regular.ttf'), size)
+
+        def center_y(lines, font_h):
+            tot_height = len(lines) * font_h
+            if tot_height < h:
+                return (h - tot_height) / 2
+            else:
+                return 0
+
+        font = load_font(font_size)
+        font_w, font_h = font.getsize(text)
+        lines = textwrap.wrap(text, width=text_width)
+
+        text_y_start = center_y(lines, font_h)
+        if text_y_start == 0:
+            # fall back if too much text
+            logger.info('too much text, decreasing font size and cropping if needed')
+            font = load_font(15)
+            font_w, font_h = font.getsize(text)
+            text_width = 80
+            lines = textwrap.wrap(text, width=text_width)
+            text_y_start = center_y(lines, font_h)
+
+        canvas = Image.new('RGB', (w, h), canvas_bg)
+        draw = ImageDraw.Draw(canvas)
+        for line in lines:
+            width, height = font.getsize(line)
+            draw.text(((w - width) / 2, text_y_start), line, font=font, fill=canvas_fg)
+            text_y_start += height
+
+        if image_export:
+            name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S_text.jpg", gmtime())
+            path = os.path.join(os.getcwd(), name)
+            logger.info('exporting image to {} (image_export=True)'.format(path))
+            canvas.save(path)
+
+        img_byte_arr = io.BytesIO()
+        canvas.save(img_byte_arr, format=img_format)
+        return img_byte_arr.getvalue()
