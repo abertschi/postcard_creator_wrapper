@@ -1,14 +1,43 @@
 import requests
 
-from postcard_creator.postcard_creator import PostcardCreatorException, _dump_request, logger, PostcardCreatorImpl
+from postcard_creator.postcard_creator import PostcardCreatorException, Recipient, Sender, \
+    _dump_request, _encode_text, _send_free_card_defaults, logger, PostcardCreatorBase
 
 
-class PostcardCreatorSwissId(PostcardCreatorImpl):
-    def __init__(self, token=None):
+def _format_sender(sender: Sender):
+    return {
+        'city': _encode_text(sender.place),
+        'company': _encode_text(sender.company),
+        'firstname': _encode_text(sender.prename),
+        'lastname': _encode_text(sender.lastname),
+        'street': _encode_text(sender.street),
+        'zip': sender.zip_code
+    }
+
+
+def _format_recipient(recipient: Recipient):
+    return {
+        'city': _encode_text(recipient.place),
+        'company': _encode_text(recipient.company),
+        'companyAddon': _encode_text(recipient.company_addition),
+        'country': 'SWITZERLAND',
+        'firstname': _encode_text(recipient.prename),
+        'lastname': _encode_text(recipient.lastname),
+        'street': _encode_text(recipient.street),
+        'title': _encode_text(recipient.salutation),
+        'zip': recipient.zip_code,
+    }
+
+
+class PostcardCreatorSwissId(PostcardCreatorBase):
+    def __init__(self, token=None, _protocol='https://'):
         if token.token is None:
             raise PostcardCreatorException('No Token given')
+
         self.token = token
         self._session = self._create_session()
+        self._protocol = _protocol
+        self.host = _protocol + 'pccweb.api.post.ch/secure/api/mobile/v1'
 
     def _get_headers(self):
         return {
@@ -35,3 +64,62 @@ class PostcardCreatorSwissId(PostcardCreatorImpl):
             e.server_response = response.text
             raise e
         return response
+
+    def _validate_model_response(self, endpoint, payload):
+        if payload.get('errors'):
+            raise PostcardCreatorException(f'cannot fetch {endpoint}: {payload["errors"]}')
+
+    def get_quota(self):
+        logger.debug('fetching quota')
+        endpoint = '/user/quota'
+
+        payload = self._do_op('get', endpoint).json()
+        self._validate_model_response(endpoint, payload)
+        return payload['model']
+
+    def has_free_postcard(self):
+        return self.get_quota()['available']
+
+    def get_user_info(self):
+        logger.debug('fetching user information')
+        endpoint = '/user/current'
+
+        payload = self._do_op('get', endpoint).json()
+        self._validate_model_response(endpoint, payload)
+        return payload['model']
+
+    def get_billing_saldo(self):
+        logger.debug('fetching billing saldo')
+        endpoint = '/billingOnline/accountSaldo'
+
+        payload = self._do_op('get', endpoint).json()
+        self._validate_model_response(endpoint, payload)
+        return payload['model']
+
+    @_send_free_card_defaults
+    def send_free_card(self, postcard, mock_send=True, **kwargs):
+        if not self.has_free_postcard():
+            raise PostcardCreatorException('Limit of free postcards exceeded. Try again tomorrow at '
+                                           + self.get_quota()['next'])
+        if not postcard:
+            raise PostcardCreatorException('Postcard must be set')
+        postcard.validate()
+
+        endpoint = '/card/upload'
+        payload = {
+            'lang': 'en',
+            'paid': False,
+            'recipient': _format_recipient(postcard.recipient),
+            'sender': _format_sender(postcard.sender),
+            'text': 'WIP',
+            'textImage': 'WIP',
+            'stamp': None
+        }
+
+        # XXX: finish upload
+        if mock_send or True:
+            logger.info(f'mock_send=True, endpoint: {endpoint}, payload: {payload}')
+            return False
+
+        payload = self._do_op('post', endpoint).json()
+        pass

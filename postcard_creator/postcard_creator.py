@@ -1,11 +1,8 @@
-import datetime
 import logging
 import math
 import os
 from io import BytesIO
 from time import gmtime, strftime
-
-import pkg_resources
 
 from PIL import Image
 from requests_toolbelt.utils import dump
@@ -69,8 +66,6 @@ class Postcard(object):
         self.message = message
         self.picture_stream = picture_stream
         self.sender = sender
-        self.frontpage_layout = pkg_resources.resource_string(__name__, 'page_1.svg').decode('utf-8')
-        self.backpage_layout = pkg_resources.resource_string(__name__, 'page_2.svg').decode('utf-8')
 
     def is_valid(self):
         return self.recipient is not None \
@@ -84,28 +79,6 @@ class Postcard(object):
         if self.recipient is None or not self.recipient.is_valid():
             raise PostcardCreatorException('Not all required attributes in sender set')
 
-    def get_frontpage(self, asset_id):
-        return self.frontpage_layout.replace('{asset_id}', str(asset_id))
-
-    def get_backpage(self):
-        svg = self.backpage_layout
-        return svg \
-            .replace('{first_name}', _encode_text(self.recipient.prename)) \
-            .replace('{last_name}', _encode_text(self.recipient.lastname)) \
-            .replace('{company}', _encode_text(self.recipient.company)) \
-            .replace('{company_addition}', _encode_text(self.recipient.company_addition)) \
-            .replace('{street}', _encode_text(self.recipient.street)) \
-            .replace('{zip_code}', str(self.recipient.zip_code)) \
-            .replace('{place}', _encode_text(self.recipient.place)) \
-            .replace('{sender_company}', _encode_text(self.sender.company)) \
-            .replace('{sender_name}', _encode_text(self.sender.prename) + ' ' + _encode_text(self.sender.lastname)) \
-            .replace('{sender_address}', _encode_text(self.sender.street)) \
-            .replace('{sender_zip_code}', str(self.sender.zip_code)) \
-            .replace('{sender_place}', _encode_text(self.sender.place)) \
-            .replace('{sender_country}', _encode_text(self.sender.country)) \
-            .replace('{message}',
-                     _encode_text(self.message))
-
 
 def _send_free_card_defaults(func):
     def wrapped(*args, **kwargs):
@@ -117,6 +90,7 @@ def _send_free_card_defaults(func):
         return func(*args, **kwargs)
 
     return wrapped
+
 
 def _rotate_and_scale_image(file, image_target_width=154, image_target_height=111,
                             image_quality_factor=20, image_rotate=True, image_export=False):
@@ -153,37 +127,44 @@ def _rotate_and_scale_image(file, image_target_width=154, image_target_height=11
 
     return scaled
 
-class PostcardCreator(object):
 
+class PostcardCreator(object):
     def __init__(self, token=None):
         self.token = token
+
         if token.token is None:
             raise PostcardCreatorException('No Token given')
         if token.token_implementation == 'legacy':
             from postcard_creator.postcard_creator_legacy import PostcardCreatorLegacy
             self.impl = PostcardCreatorLegacy(token)
         else:
-            self.impl = None
-
-    def has_free_postcard(self):
-        return self.impl.has_free_postcard()
-
-    @_send_free_card_defaults
-    def send_free_card(self, postcard, mock_send=False, **kwargs):
-        return self.impl.send_free_card(postcard, mock_send, **kwargs)
+            from postcard_creator.postcard_creator_swissid import PostcardCreatorSwissId
+            self.impl = PostcardCreatorSwissId(token)
 
     # XXX: In order to be downward compatible we
     # expose this class as a proxy for different endpoint implementations
     def __getattr__(self, method_name):
         def method(*args, **kwargs):
             logger.debug("Forwarding method to implementation {}: '{}'".
-                         format(self.token.implementation_type, method_name))
+                         format(self.token.token_implementation, method_name))
             return getattr(self.impl, method_name)(*args, **kwargs)
+
         return method
 
 
-class PostcardCreatorImpl(object):
-    pass
+class PostcardCreatorBase(object):
+    def has_free_postcard(self):
+        pass
+
+    @_send_free_card_defaults
+    def send_free_card(self, postcard, mock_send=False, **kwargs):
+        pass
+
+    def get_quota(self):
+        """
+        Format: {'quota': -1, 'retentionDays': 1, 'available': False, 'next': '2020-12-24T18:00:15+01:00'}
+        """
+        pass
 
 
 # expose Token class in this module for backwards compatibility

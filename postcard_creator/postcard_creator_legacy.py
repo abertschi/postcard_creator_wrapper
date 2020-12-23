@@ -1,12 +1,13 @@
 import datetime
 
+import pkg_resources
 import requests
 
-from postcard_creator.postcard_creator import PostcardCreatorException, PostcardCreatorImpl, _dump_request, \
-    _rotate_and_scale_image, _send_free_card_defaults, logger
+from postcard_creator.postcard_creator import PostcardCreatorException, _dump_request, \
+    _encode_text, _rotate_and_scale_image, _send_free_card_defaults, logger, PostcardCreatorBase
 
 
-def _recipient_to_json(recipient):
+def _format_recipient(recipient):
     return {'recipientFields': [
         {'name': 'Salutation', 'addressField': 'SALUTATION'},
         {'name': 'Given Name', 'addressField': 'GIVEN_NAME'},
@@ -27,14 +28,18 @@ def _recipient_to_json(recipient):
              recipient.place]]}
 
 
-class PostcardCreatorLegacy(PostcardCreatorImpl):
+class PostcardCreatorLegacy(PostcardCreatorBase):
     def __init__(self, token=None):
         if token.token is None:
             raise PostcardCreatorException('No Token given')
+
         self.token = token
         self.protocol = 'https://'
         self.host = '{}postcardcreator.post.ch/rest/2.2'.format(self.protocol)
         self._session = self._create_session()
+
+        self.frontpage_layout = pkg_resources.resource_string(__name__, 'page_1.svg').decode('utf-8')
+        self.backpage_layout = pkg_resources.resource_string(__name__, 'page_2.svg').decode('utf-8')
 
     def _get_headers(self):
         return {
@@ -100,8 +105,9 @@ class PostcardCreatorLegacy(PostcardCreatorImpl):
         picture_stream = _rotate_and_scale_image(postcard.picture_stream, **kwargs)
         asset_response = self._upload_asset(user, card_id=card_id, picture_stream=picture_stream)
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
-        self._set_svg_page(1, user_id, card_id, postcard.get_frontpage(asset_id=asset_response['asset_id']))
-        self._set_svg_page(2, user_id, card_id, postcard.get_backpage())
+        self._set_svg_page(1, user_id, card_id, self._get_frontpage(asset_id=asset_response['asset_id']))
+        self._set_svg_page(2, user_id, card_id,
+                           self._get_backpage(postcard.sender, postcard.recipient, postcard.message))
 
         if mock_send:
             response = False
@@ -145,7 +151,7 @@ class PostcardCreatorLegacy(PostcardCreatorImpl):
     def _set_card_recipient(self, user_id, card_id, postcard):
         logger.debug('set recipient for postcard')
         endpoint = '/users/{}/mailings/{}/recipients'.format(user_id, card_id)
-        return self._do_op('put', endpoint, json=_recipient_to_json(postcard.recipient))
+        return self._do_op('put', endpoint, json=_format_recipient(postcard.recipient))
 
     def _set_svg_page(self, page_number, user_id, card_id, svg_content):
         logger.debug('set svg template ' + str(page_number) + ' for postcard')
@@ -160,3 +166,25 @@ class PostcardCreatorLegacy(PostcardCreatorImpl):
         logger.debug('submit postcard to be printed and delivered')
         endpoint = '/users/{}/mailings/{}/order'.format(user_id, card_id)
         return self._do_op('post', endpoint, json={})
+
+    def _get_frontpage(self, asset_id):
+        return self.frontpage_layout.replace('{asset_id}', str(asset_id))
+
+    def _get_backpage(self, sender, recipient, message):
+        svg = self.backpage_layout
+        return svg \
+            .replace('{first_name}', _encode_text(recipient.prename)) \
+            .replace('{last_name}', _encode_text(recipient.lastname)) \
+            .replace('{company}', _encode_text(recipient.company)) \
+            .replace('{company_addition}', _encode_text(recipient.company_addition)) \
+            .replace('{street}', _encode_text(recipient.street)) \
+            .replace('{zip_code}', str(recipient.zip_code)) \
+            .replace('{place}', _encode_text(recipient.place)) \
+            .replace('{sender_company}', _encode_text(sender.company)) \
+            .replace('{sender_name}', _encode_text(sender.prename) + ' ' + _encode_text(sender.lastname)) \
+            .replace('{sender_address}', _encode_text(sender.street)) \
+            .replace('{sender_zip_code}', str(sender.zip_code)) \
+            .replace('{sender_place}', _encode_text(sender.place)) \
+            .replace('{sender_country}', _encode_text(sender.country)) \
+            .replace('{message}',
+                     _encode_text(message))
