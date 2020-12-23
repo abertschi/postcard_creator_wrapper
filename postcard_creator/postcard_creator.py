@@ -159,7 +159,7 @@ class PostcardCreator(object):
         self.token = token
         if token.token is None:
             raise PostcardCreatorException('No Token given')
-        if token.implementation_type == 'legacy':
+        if token.token_implementation == 'legacy':
             from postcard_creator.postcard_creator_legacy import PostcardCreatorLegacy
             self.impl = PostcardCreatorLegacy(token)
         else:

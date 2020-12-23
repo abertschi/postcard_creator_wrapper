@@ -133,7 +133,7 @@ class Token(object):
             self.token_type = access_token['token_type']
             self.token_expires_in = access_token['expires_in']
             self.token_fetched_at = datetime.datetime.now()
-            self.implementation_type = implementation_type
+            self.token_implementation = implementation_type
             logging.info("access_token successfully fetched")
 
         except Exception as e:
@@ -340,4 +340,5 @@ class Token(object):
             'token': self.token,
             'expires_in': self.token_expires_in,
             'type': self.token_type,
+            'implementation': self.token_implementation
         }
