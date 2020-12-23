@@ -1,7 +1,9 @@
+import base64
+
 import requests
 
 from postcard_creator.postcard_creator import PostcardCreatorException, Recipient, Sender, \
-    _dump_request, _encode_text, _send_free_card_defaults, logger, PostcardCreatorBase
+    _dump_request, _encode_text, _send_free_card_defaults, logger, PostcardCreatorBase, _rotate_and_scale_image
 
 
 def _format_sender(sender: Sender):
@@ -106,6 +108,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         if not postcard:
             raise PostcardCreatorException('Postcard must be set')
         postcard.validate()
+        img_base64 = base64.b64encode(_rotate_and_scale_image(postcard.picture_stream, **kwargs))
 
         endpoint = '/card/upload'
         payload = {
@@ -113,22 +116,22 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             'paid': False,
             'recipient': _format_recipient(postcard.recipient),
             'sender': _format_sender(postcard.sender),
-            'text': '',
-            # textImage.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 720x744, components 3
-            'textImage': 'WIP',
-            # image.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 1819x1311, components 3
-            'image': 'blob',
+
+            # XXX: test if 'text' is still supported or if text must be converted to an image
+            'text': _encode_text(postcard.message),
+
+            # XXX: JPEG image data, JFIF standard 1.01, segment length 16, baseline, precision 8, 720x744, components 3
+            'textImage': None,
+
+            # XXX: JPEG segment length 16, baseline, precision 8, 1819x1311, components 3
+            'image': img_base64,
             'stamp': None
-
-            # var r = h(e), n = new java.io.ByteArrayOutputStream,
-            # i = new android.util.Base64OutputStream(n, android.util.Base64.NO_WRAP);
-            # this.android.compress(r, t, i);
         }
-
-        # XXX: finish upload
         if mock_send or True:
             logger.info(f'mock_send=True, endpoint: {endpoint}, payload: {payload}')
             return False
 
-        payload = self._do_op('post', endpoint).json()
+        payload = self._do_op('post', endpoint, json=payload).json()
+        self._validate_model_response(endpoint, payload)
+
         pass
