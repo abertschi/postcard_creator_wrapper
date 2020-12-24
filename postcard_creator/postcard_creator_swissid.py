@@ -38,14 +38,12 @@ def _format_recipient(recipient: Recipient):
 
 
 class PostcardCreatorSwissId(PostcardCreatorBase):
-    def __init__(self, token=None, _protocol='https://'):
+    def __init__(self, token=None):
         if token.token is None:
             raise PostcardCreatorException('No Token given')
-
         self.token = token
         self._session = self._create_session()
-        self._protocol = _protocol
-        self.host = _protocol + 'pccweb.api.post.ch/secure/api/mobile/v1'
+        self.host = 'https://pccweb.api.post.ch/secure/api/mobile/v1'
 
     def _get_headers(self):
         return {
@@ -107,7 +105,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         return payload['model']
 
     @_send_free_card_defaults
-    def send_free_card(self, postcard, mock_send=True, **kwargs):
+    def send_free_card(self, postcard, mock_send=True, image_export = False, **kwargs):
         if not postcard:
             raise PostcardCreatorException('Postcard must be set')
         postcard.validate()
@@ -159,28 +157,35 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         logger.debug(f'{endpoint} with response {payload}')
 
         self._validate_model_response(endpoint, payload)
+        logger.debug('postcard submitted')
         return payload
 
-    @staticmethod
-    def _create_text_image(text, w=720, h=744,
-                           text_width=60,
-                           font_size=23,
-                           canvas_bg='white', canvas_fg='black',
-                           image_export=True,
-                           img_format='jpeg', **kwargs):
+    def _create_text_image(self, text,
+                           text_canvas_w=720,
+                           text_canvas_h=744,
+                           text_canvas_text_width=60,
+                           text_canvas_font_size=23,
+                           text_canvas_bg='white',
+                           text_canvas_fg='black',
+                           image_export=False,
+                           img_format='jpeg',
+                           **kwargs):
+        """
+        Return byte stream of canvas with text. Overwrite for custom look
+        """
         def load_font(size):
             return ImageFont.truetype(pkg_resources.resource_stream(__name__, 'OpenSans-Regular.ttf'), size)
 
         def center_y(lines, font_h):
             tot_height = len(lines) * font_h
-            if tot_height < h:
-                return (h - tot_height) / 2
+            if tot_height < text_canvas_h:
+                return (text_canvas_h - tot_height) / 2
             else:
                 return 0
 
-        font = load_font(font_size)
+        font = load_font(text_canvas_font_size)
         font_w, font_h = font.getsize(text)
-        lines = textwrap.wrap(text, width=text_width)
+        lines = textwrap.wrap(text, width=text_canvas_text_width)
 
         # XXX: trivial centering: center text if enough space,
         # otherwise use smaller font and overflow if needed
@@ -190,15 +195,15 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             logger.info('too much text, decreasing font size and cropping if needed')
             font = load_font(15)
             font_w, font_h = font.getsize(text)
-            text_width = 80
-            lines = textwrap.wrap(text, width=text_width)
+            text_canvas_text_width = 80
+            lines = textwrap.wrap(text, width=text_canvas_text_width)
             text_y_start = center_y(lines, font_h)
 
-        canvas = Image.new('RGB', (w, h), canvas_bg)
+        canvas = Image.new('RGB', (text_canvas_w, text_canvas_h), text_canvas_bg)
         draw = ImageDraw.Draw(canvas)
         for line in lines:
             width, height = font.getsize(line)
-            draw.text(((w - width) / 2, text_y_start), line, font=font, fill=canvas_fg)
+            draw.text(((text_canvas_w - width) / 2, text_y_start), line, font=font, fill=text_canvas_fg)
             text_y_start += height
 
         if image_export:

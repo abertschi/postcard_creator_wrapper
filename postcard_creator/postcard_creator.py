@@ -82,9 +82,9 @@ class Postcard(object):
 
 def _send_free_card_defaults(func):
     def wrapped(*args, **kwargs):
-        kwargs['image_target_width'] = kwargs.get('image_target_width') or 154
-        kwargs['image_target_height'] = kwargs.get('image_target_height') or 111
-        kwargs['image_quality_factor'] = kwargs.get('image_quality_factor') or 20
+        kwargs['image_target_width'] = kwargs.get('image_target_width') or 154  # legacy only
+        kwargs['image_target_height'] = kwargs.get('image_target_height') or 111  # legacy only
+        kwargs['image_quality_factor'] = kwargs.get('image_quality_factor') or 20  # legacy only
         kwargs['image_rotate'] = kwargs.get('image_rotate') or True
         kwargs['image_export'] = kwargs.get('image_export') or False
         return func(*args, **kwargs)

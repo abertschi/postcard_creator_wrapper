@@ -32,10 +32,8 @@ class PostcardCreatorLegacy(PostcardCreatorBase):
     def __init__(self, token=None):
         if token.token is None:
             raise PostcardCreatorException('No Token given')
-
         self.token = token
-        self.protocol = 'https://'
-        self.host = '{}postcardcreator.post.ch/rest/2.2'.format(self.protocol)
+        self.host = 'https://postcardcreator.post.ch/rest/2.2'
         self._session = self._create_session()
 
         self.frontpage_layout = pkg_resources.resource_string(__name__, 'page_1.svg').decode('utf-8')
