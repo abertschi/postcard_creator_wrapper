@@ -15,6 +15,8 @@ from postcard_creator.postcard_creator import PostcardCreator
 
 w = PostcardCreator(token)
 w.get_quota()
+w.get_user_info()
+w.get_billing_saldo()
 w.has_free_postcard()
 w.send_free_card(postcard=)
 ```
@@ -32,17 +34,21 @@ sender = Sender(prename='', lastname='', street='', place='', zip_code=0000)
 card = Postcard(message='', recipient=recipient, sender=sender, picture_stream=open('./my-photo.jpg', 'rb'))
 
 w = PostcardCreator(token)
-w.send_free_card(postcard=card, mock_send=False)
+w.send_free_card(postcard=card, mock_send=False, image_export=False)
 ```
 
 ### Advanced configuration
-The following keyword arguments are available for advanced configuration (listed with corresponding defaults).
+The following keyword arguments are available for advanced configuration.
 
 **PostcardCreator#send_free_card()**:
-- `image_export = False`: Export postcard image to current directory (os.getcwd)
+- `image_export=False`: Export postcard image to current directory (os.getcwd)
+- `mock_send=False`: Do not submit order (testing)
 
 **Token#fetch_token()**:
 - `method = 'mixed'`: Choose what authentication to use. `['mixed', 'legacy', 'swissid']`. `'mixed'` tries both.
+
+**Customize text formatting**
+- see `PostcardCreatorSwissId._create_text_image()`
 
 ### Logging
 ```python
@@ -76,6 +82,9 @@ pytest
 ### v2.0, 2020-12
 - support of new swissid authentication (access_token with code/ code_verifier)
 - support of new endpoints at https://pccweb.api.post.ch/secure/api/mobile/v1
+- class PostcardCreator is a proxy which instantiates an endpoint wrapper compatible with authentication method of token, underlying wrappers are: PostcardCreatorSwissId, PostcardCreatorLegacy 
+- migration to v2.0 with authentication method swissid: if you rely on get_billing_saldo(), get_user_info(): these endpoints return data in different format
+
 ### v1.1, 2020-01-30
 - support for swissid authentication
 - Method `Token#has_valid_credentials` and `Token#fetch_token` introduce a parameter `method` 

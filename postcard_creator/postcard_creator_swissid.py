@@ -164,9 +164,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
                            img_format='jpeg',
                            **kwargs):
         """
-        Return byte stream of canvas with text. Overwrite for custom look
+        Return byte stream of canvas with text.
         """
-
         def load_font(size):
             return ImageFont.truetype(pkg_resources.resource_stream(__name__, 'OpenSans-Regular.ttf'), size)
 
