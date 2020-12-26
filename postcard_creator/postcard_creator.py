@@ -2,6 +2,7 @@ import logging
 import math
 import os
 from io import BytesIO
+from pathlib import Path
 from time import gmtime, strftime
 
 from PIL import Image
@@ -12,6 +13,11 @@ LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
 logging.addLevelName(LOGGING_TRACE_LVL, 'TRACE')
 setattr(logger, 'trace', lambda *args: logger.log(LOGGING_TRACE_LVL, *args))
+
+def _get_trace_postcard_sent_dir():
+    path = os.path.join(os.getcwd(), '.postcard_creator_wrapper_sent')
+    Path(path).mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def _dump_request(response):
@@ -120,8 +126,8 @@ def _rotate_and_scale_image(file, image_target_width=154, image_target_height=11
             scaled = f.getvalue()
 
         if image_export:
-            name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S.jpg", gmtime())
-            path = os.path.join(os.getcwd(), name)
+            name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S_cover.jpg", gmtime())
+            path = os.path.join(_get_trace_postcard_sent_dir(), name)
             logger.info('exporting image to {} (image_export=True)'.format(path))
             cover.save(path)
 

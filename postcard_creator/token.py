@@ -99,7 +99,7 @@ class Token(object):
         access_token = None
         implementation_type = ''
         if method != 'swissid':
-            logging.info("using legacy username password authentication")
+            logger.info("using legacy username password authentication")
             session = self._create_session()
             try:
                 access_token = self._get_access_token_legacy(session, username, password)
@@ -107,37 +107,37 @@ class Token(object):
                 success = True
                 implementation_type = 'legacy'
             except Exception as e:
-                logging.info("legacy username password authentication failed")
-                logging.info(e)
+                logger.info("legacy username password authentication failed")
+                logger.info(e)
                 if method == 'mixed':
-                    logging.info(".Trying swissid now because method=legacy")
+                    logger.info("Trying swissid now because method=legacy")
                 else:
-                    logging.info("giving up")
+                    logger.info("giving up")
                     raise e
                 pass
         if method != 'legacy' and not success:
-            logging.info("using swissid username password authentication")
+            logger.info("using swissid username password authentication")
             try:
                 session = self._create_session()
                 access_token = self._get_access_token_swissid(session, username, password)
                 logger.debug('swissid username/password authentication was successful')
                 implementation_type = 'swissid'
             except Exception as e:
-                logging.info("swissid username password authentication failed")
-                logging.info(e)
+                logger.info("swissid username password authentication failed")
+                logger.info(e)
                 raise e
 
         try:
-            logging.info(access_token)
+            logger.trace(access_token)
             self.token = access_token['access_token']
             self.token_type = access_token['token_type']
             self.token_expires_in = access_token['expires_in']
             self.token_fetched_at = datetime.datetime.now()
             self.token_implementation = implementation_type
-            logging.info("access_token successfully fetched")
+            logger.info("access_token successfully fetched")
 
         except Exception as e:
-            logging.info("access_token does not contain required values. someting broke")
+            logger.info("access_token does not contain required values. someting broke")
             raise e
 
     def _create_session(self):
@@ -252,7 +252,7 @@ class Token(object):
         resp = session.get(url, allow_redirects=True)
         _log_and_dump(resp)
 
-        # logging with username and password
+        # login with username and password
         url = 'https://login.swissid.ch/api-login/authenticate/init?locale=en&goto=' + goto_param + \
               "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
         resp = session.post(url, allow_redirects=True)
@@ -274,7 +274,7 @@ class Token(object):
         try:
             url = resp.json()['nextAction']['successUrl']
         except Exception as e:
-            logging.info("failed to login. username/password wrong?")
+            logger.info("failed to login. username/password wrong?")
             raise PostcardCreatorException(e)
 
         resp = session.get(url, headers=request_headers, allow_redirects=True)

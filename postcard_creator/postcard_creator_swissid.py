@@ -9,7 +9,7 @@ import requests
 from PIL import Image, ImageDraw, ImageFont
 
 from postcard_creator.postcard_creator import PostcardCreatorBase, PostcardCreatorException, Recipient, Sender, \
-    _dump_request, _encode_text, _rotate_and_scale_image, _send_free_card_defaults, logger
+    _dump_request, _encode_text, _get_trace_postcard_sent_dir, _rotate_and_scale_image, _send_free_card_defaults, logger
 
 
 def _format_sender(sender: Sender):
@@ -105,7 +105,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         return payload['model']
 
     @_send_free_card_defaults
-    def send_free_card(self, postcard, mock_send=True, image_export = False, **kwargs):
+    def send_free_card(self, postcard, mock_send=False, image_export=False, **kwargs):
         if not postcard:
             raise PostcardCreatorException('Postcard must be set')
         postcard.validate()
@@ -116,9 +116,11 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         kwargs['image_target_height'] = 1311
         img_base64 = base64.b64encode(_rotate_and_scale_image(postcard.picture_stream,
                                                               img_format='jpeg',
+                                                              image_export=image_export,
                                                               **kwargs)).decode('ascii')
 
-        img_text_base64 = base64.b64encode(self._create_text_image(postcard.message)).decode('ascii')
+        img_text_base64 = base64.b64encode(self._create_text_image(postcard.message,
+                                                                   image_export=image_export)).decode('ascii')
 
         endpoint = '/card/upload'
         payload = {
@@ -126,19 +128,9 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             'paid': False,
             'recipient': _format_recipient(postcard.recipient),
             'sender': _format_sender(postcard.sender),
-
-            # XXX: test if 'text' is still supported or if text must be converted to an image
-            # 'text': _encode_text(postcard.message),
             'text': '',
-
-            # XXX: JPEG image data, JFIF standard 1.01, segment length 16,
-            # baseline, precision 8, 720x744, components 3
-            'textImage': img_text_base64,
-
-            # XXX: JPEG segment length 16, baseline, precision 8,
-            # 1819x1311, components 3
-            'image': img_base64,
-
+            'textImage': img_text_base64,  # jpeg, JFIF standard 1.01, 720x744
+            'image': img_base64,  # jpeg, JFIF standard 1.01, 1819x1311
             'stamp': None
         }
 
@@ -157,7 +149,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         logger.debug(f'{endpoint} with response {payload}')
 
         self._validate_model_response(endpoint, payload)
-        logger.debug('postcard submitted')
+
+        logger.debug('postcard submitted, orderid {payload.get("orderId")}')
         return payload
 
     def _create_text_image(self, text,
@@ -173,6 +166,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         """
         Return byte stream of canvas with text. Overwrite for custom look
         """
+
         def load_font(size):
             return ImageFont.truetype(pkg_resources.resource_stream(__name__, 'OpenSans-Regular.ttf'), size)
 
@@ -208,7 +202,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
 
         if image_export:
             name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S_text.jpg", gmtime())
-            path = os.path.join(os.getcwd(), name)
+            path = os.path.join(_get_trace_postcard_sent_dir(), name)
             logger.info('exporting image to {} (image_export=True)'.format(path))
             canvas.save(path)
 
