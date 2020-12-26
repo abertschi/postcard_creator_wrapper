@@ -6,10 +6,12 @@ A python wrapper around the Rest API of the Swiss Postcard creator.
 
 ## Installation
 ```sh
+# requires python 3.6 or later
 $ pip install postcard-creator
 ```
 
 ## Setup / API Usage
+
 ```python
 from postcard_creator.postcard_creator import PostcardCreator
 
@@ -84,6 +86,7 @@ pytest
 - support of new endpoints at https://pccweb.api.post.ch/secure/api/mobile/v1
 - class PostcardCreator is a proxy which instantiates an endpoint wrapper compatible with authentication method of token, underlying wrappers are: PostcardCreatorSwissId, PostcardCreatorLegacy 
 - migration to v2.0 with authentication method swissid: if you rely on get_billing_saldo(), get_user_info(): these endpoints return data in different format
+- require python 3.6 or later
 
 ### v1.1, 2020-01-30
 - support for swissid authentication
