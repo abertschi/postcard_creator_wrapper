@@ -50,7 +50,7 @@ The following keyword arguments are available for advanced configuration.
 - `method = 'mixed'`: Choose what authentication to use. `['mixed', 'legacy', 'swissid']`. `'mixed'` tries both.
 
 **Customize text formatting**
-- see `PostcardCreatorSwissId._create_text_image()`
+- see `PostcardCreatorSwissId.create_text_image()`
 
 ### Logging
 ```python

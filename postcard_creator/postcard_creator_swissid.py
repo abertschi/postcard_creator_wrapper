@@ -119,8 +119,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
                                                               image_export=image_export,
                                                               **kwargs)).decode('ascii')
 
-        img_text_base64 = base64.b64encode(self._create_text_image(postcard.message,
-                                                                   image_export=image_export)).decode('ascii')
+        img_text_base64 = base64.b64encode(self.create_text_image(postcard.message,
+                                                                  image_export=image_export)).decode('ascii')
 
         endpoint = '/card/upload'
         payload = {
@@ -150,22 +150,20 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
 
         self._validate_model_response(endpoint, payload)
 
-        logger.debug('postcard submitted, orderid {payload.get("orderId")}')
+        logger.info('postcard submitted, orderid {payload.get("orderId")}')
         return payload
 
-    def _create_text_image(self, text,
-                           text_canvas_w=720,
-                           text_canvas_h=744,
-                           text_canvas_text_width=60,
-                           text_canvas_font_size=23,
-                           text_canvas_bg='white',
-                           text_canvas_fg='black',
-                           image_export=False,
-                           img_format='jpeg',
-                           **kwargs):
+    def create_text_image(self, text, image_export=False):
         """
-        Return byte stream of canvas with text.
+        Create a jpg with given text and return in bytes format, overwrite for customizations
         """
+        text_canvas_w = 720
+        text_canvas_h = 744
+        text_canvas_text_width = 60
+        text_canvas_font_size = 23
+        text_canvas_bg = 'white'
+        text_canvas_fg = 'black'
+
         def load_font(size):
             return ImageFont.truetype(pkg_resources.resource_stream(__name__, 'OpenSans-Regular.ttf'), size)
 
@@ -206,5 +204,5 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             canvas.save(path)
 
         img_byte_arr = io.BytesIO()
-        canvas.save(img_byte_arr, format=img_format)
+        canvas.save(img_byte_arr, format='jpeg')
         return img_byte_arr.getvalue()
