@@ -157,6 +157,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         """
         Create a jpg with given text and return in bytes format, overwrite for customizations
         """
+
         text_canvas_w = 720
         text_canvas_h = 744
         text_canvas_text_width = 60
