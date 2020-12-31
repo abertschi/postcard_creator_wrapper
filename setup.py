@@ -7,6 +7,7 @@ from setuptools import setup
 import codecs
 import os
 import re
+from postcard_creator import __version__
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -36,7 +37,7 @@ reqs = [
 
 setup(
     name='postcard_creator',
-    version='1.1', #find_version('postcard_creator', '__init__.py'),
+    version=__version__,
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
@@ -52,13 +53,15 @@ setup(
         #   5 - Production/Stable
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        # 'Programming Language :: Python :: 3.3',
+        # 'Programming Language :: Python :: 3.4',
+        # 'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     setup_requires=['pytest-runner'],
-    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']}
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg', 'open_sans_emoji.ttf']}
     # extras_require={
     #     ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
     # }
