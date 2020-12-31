@@ -150,7 +150,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
 
         self._validate_model_response(endpoint, payload)
 
-        logger.info('postcard submitted, orderid {payload.get("orderId")}')
+        logger.info(f'postcard submitted, orderid {payload.get("orderId")}')
         return payload
 
     def create_text_image(self, text, image_export=False):

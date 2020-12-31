@@ -85,7 +85,9 @@ pytest
 - support of new swissid authentication (access_token with code/ code_verifier)
 - support of new endpoints at https://pccweb.api.post.ch/secure/api/mobile/v1
 - class PostcardCreator is a proxy which instantiates an endpoint wrapper compatible with authentication method of token, underlying wrappers are: PostcardCreatorSwissId, PostcardCreatorLegacy 
-- migration to v2.0 with authentication method swissid: if you rely on get_billing_saldo(), get_user_info(): these endpoints return data in different format
+- migration to v2.0
+  + with authentication method swissid: if you rely on get_billing_saldo(), get_user_info(): these endpoints return data in different format
+  + customizations image_target_width, image_target_height, image_quality_factor no longer compatible with authentication method swissid
 - require python 3.6 or later
 
 ### v1.1, 2020-01-30

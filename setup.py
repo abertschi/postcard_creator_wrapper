@@ -7,6 +7,7 @@ from setuptools import setup
 import codecs
 import os
 import re
+from postcard_creator import __version__
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -36,7 +37,7 @@ reqs = [
 
 setup(
     name='postcard_creator',
-    version='2.0', #find_version('postcard_creator', '__init__.py'),
+    version=__version__,
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
