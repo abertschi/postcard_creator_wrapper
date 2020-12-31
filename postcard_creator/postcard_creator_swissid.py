@@ -122,7 +122,6 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
 
         img_text_base64 = base64.b64encode(self.create_text_image(postcard.message,
                                                                   image_export=image_export)).decode('ascii')
-
         endpoint = '/card/upload'
         payload = {
             'lang': 'en',
@@ -187,7 +186,6 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
                     else:
                         l = n + 1
                         pass
-                logger.trace(f'font size: {font_size} max n {n}')
                 return n
 
             size_l = min_size
@@ -212,10 +210,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
                     start_y = 0
 
                 if start_y == 0:
-                    logger.trace(f'does not fit n={line_w} (size: {last_size})')
                     size_r = size - 1
                 else:
-                    logger.trace(f'does fit n={line_w} (size: {last_size})')
                     size_l = size + 1
 
             return last_size, last_line_w
@@ -239,7 +235,9 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         draw = ImageDraw.Draw(canvas)
         for line in lines:
             width, height = font.getsize(line)
-            draw.text(((text_canvas_w - width) / 2, text_y_start), line, font=font, fill=text_canvas_fg,
+            draw.text(((text_canvas_w - width) / 2, text_y_start), line,
+                      font=font,
+                      fill=text_canvas_fg,
                       embedded_color=True)
             text_y_start += (height)
 
