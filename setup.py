@@ -61,7 +61,7 @@ setup(
         'Programming Language :: Python :: 3.8',
     ],
     setup_requires=['pytest-runner'],
-    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg', 'OpenSans-Regular.ttf']}
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg', 'open_sans_emoji.ttf']}
     # extras_require={
     #     ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
     # }
