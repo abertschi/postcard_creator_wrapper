@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import textwrap
+from math import floor
 from time import gmtime, strftime
 
 import pkg_resources
@@ -153,20 +154,71 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         logger.info(f'postcard submitted, orderid {payload.get("orderId")}')
         return payload
 
-    def create_text_image(self, text, image_export=False):
+    def create_text_image(self, text, image_export=False, **kwargs):
         """
         Create a jpg with given text and return in bytes format, overwrite for customizations
         """
-
         text_canvas_w = 720
         text_canvas_h = 744
-        text_canvas_text_width = 60
-        text_canvas_font_size = 23
         text_canvas_bg = 'white'
         text_canvas_fg = 'black'
+        text_canvas_font_name = 'open_sans_emoji.ttf'
 
         def load_font(size):
-            return ImageFont.truetype(pkg_resources.resource_stream(__name__, 'OpenSans-Regular.ttf'), size)
+            return ImageFont.truetype(pkg_resources.resource_stream(__name__, text_canvas_font_name), size)
+
+        def find_optimal_size(msg, min_size=20, max_size=400, min_line_w=1, max_line_w=80, padding=0):
+            """
+            Find optimal font size and line width for a given text
+            """
+
+            def line_width(font_size, padding=70):
+                l = min_line_w
+                r = max_line_w
+                font = load_font(font_size)
+                while l < r:
+                    n = floor((l + r) / 2)
+                    t = ''.join([char * n for char in '1'])
+                    font_w, font_h = font.getsize(t)
+                    font_w = font_w + (2 * padding)
+                    if font_w >= text_canvas_w:
+                        r = n - 1
+                        pass
+                    else:
+                        l = n + 1
+                        pass
+                logger.trace(f'font size: {font_size} max n {n}')
+                return n
+
+            size_l = min_size
+            size_r = max_size
+            last_line_w = 0
+            last_size = 0
+
+            while size_l <= size_r:
+                size = floor((size_l + size_r) / 2.0)
+                last_size = size
+                line_w = line_width(size)
+                last_line_w = line_w
+
+                lines = textwrap.wrap(msg, width=line_w)
+                font = load_font(size)
+                total_w, line_h = font.getsize(msg)
+                tot_height = len(lines) * line_h
+
+                if tot_height + (2 * padding) < text_canvas_h:
+                    start_y = (text_canvas_h - tot_height) / 2
+                else:
+                    start_y = 0
+
+                if start_y == 0:
+                    logger.trace(f'does not fit n={line_w} (size: {last_size})')
+                    size_r = size - 1
+                else:
+                    logger.trace(f'does fit n={line_w} (size: {last_size})')
+                    size_l = size + 1
+
+            return last_size, last_line_w
 
         def center_y(lines, font_h):
             tot_height = len(lines) * font_h
@@ -175,28 +227,21 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
             else:
                 return 0
 
-        font = load_font(text_canvas_font_size)
-        font_w, font_h = font.getsize(text)
-        lines = textwrap.wrap(text, width=text_canvas_text_width)
+        size, line_w = find_optimal_size(text, padding=50)
+        logger.debug(f'using font with size: {size}, width: {line_w}')
 
-        # XXX: trivial centering: center text if enough space,
-        # otherwise use smaller font and overflow if needed
+        font = load_font(size)
+        font_w, font_h = font.getsize(text)
+        lines = textwrap.wrap(text, width=line_w)
         text_y_start = center_y(lines, font_h)
-        if text_y_start == 0:
-            # fall back if too much text
-            logger.info('too much text, decreasing font size and cropping if needed')
-            font = load_font(15)
-            font_w, font_h = font.getsize(text)
-            text_canvas_text_width = 80
-            lines = textwrap.wrap(text, width=text_canvas_text_width)
-            text_y_start = center_y(lines, font_h)
 
         canvas = Image.new('RGB', (text_canvas_w, text_canvas_h), text_canvas_bg)
         draw = ImageDraw.Draw(canvas)
         for line in lines:
             width, height = font.getsize(line)
-            draw.text(((text_canvas_w - width) / 2, text_y_start), line, font=font, fill=text_canvas_fg)
-            text_y_start += height
+            draw.text(((text_canvas_w - width) / 2, text_y_start), line, font=font, fill=text_canvas_fg,
+                      embedded_color=True)
+            text_y_start += (height)
 
         if image_export:
             name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S_text.jpg", gmtime())
