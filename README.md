@@ -46,12 +46,6 @@ The following keyword arguments are available for advanced configuration.
 - `image_export=False`: Export postcard image to current directory (os.getcwd)
 - `mock_send=False`: Do not submit order (testing)
 
-**Token#fetch_token()**:
-- `method = 'mixed'`: Choose what authentication to use. `['mixed', 'legacy', 'swissid']`. `'mixed'` tries both.
-
-**Customize text formatting**
-- see `PostcardCreatorSwissId.create_text_image()`
-
 ### Logging
 ```python
 import logging

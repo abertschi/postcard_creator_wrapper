@@ -97,43 +97,6 @@ def _send_free_card_defaults(func):
 
     return wrapped
 
-
-def _rotate_and_scale_image(file, image_target_width=154, image_target_height=111,
-                            image_quality_factor=20, image_rotate=True, image_export=False, img_format='PNG', **kwargs):
-    with Image.open(file) as image:
-        if image_rotate and image.width < image.height:
-            image = image.rotate(90, expand=True)
-            logger.debug('rotating image by 90 degrees')
-
-        if image.width < image_quality_factor * image_target_width \
-                or image.height < image_quality_factor * image_target_height:
-            factor_width = math.floor(image.width / image_target_width)
-            factor_height = math.floor(image.height / image_target_height)
-            factor = min([factor_height, factor_width])
-
-            logger.debug('image is smaller than default for resize/fill. '
-                         'using scale factor {} instead of {}'.format(factor, image_quality_factor))
-            image_quality_factor = factor
-
-        width = image_target_width * image_quality_factor
-        height = image_target_height * image_quality_factor
-        logger.debug('resizing image from {}x{} to {}x{}'
-                     .format(image.width, image.height, width, height))
-
-        cover = resizeimage.resize_cover(image, [width, height], validate=True)
-        with BytesIO() as f:
-            cover.save(f, img_format)
-            scaled = f.getvalue()
-
-        if image_export:
-            name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S_cover.jpg", gmtime())
-            path = os.path.join(_get_trace_postcard_sent_dir(), name)
-            logger.info('exporting image to {} (image_export=True)'.format(path))
-            cover.save(path)
-
-    return scaled
-
-
 class PostcardCreator(object):
     def __init__(self, token=None):
         self.token = token

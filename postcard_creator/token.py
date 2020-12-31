@@ -275,7 +275,7 @@ class Token(object):
             url = resp.json()['nextAction']['successUrl']
         except Exception as e:
             logger.info("failed to login. username/password wrong?")
-            raise PostcardCreatorException(e)
+            raise PostcardCreatorException("failed to login, username/password wrong?")
 
         resp = session.get(url, headers=request_headers, allow_redirects=True)
         _log_and_dump(resp)

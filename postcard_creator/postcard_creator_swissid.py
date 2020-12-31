@@ -1,16 +1,10 @@
 import base64
-import io
-import os
-import textwrap
-from math import floor
-from time import gmtime, strftime
 
-import pkg_resources
 import requests
-from PIL import Image, ImageDraw, ImageFont
 
+from postcard_creator.postcard_img_util import create_text_image, rotate_and_scale_image
 from postcard_creator.postcard_creator import PostcardCreatorBase, PostcardCreatorException, Recipient, Sender, \
-    _dump_request, _encode_text, _get_trace_postcard_sent_dir, _rotate_and_scale_image, _send_free_card_defaults, logger
+    _dump_request, _encode_text, _send_free_card_defaults, logger
 
 
 def _format_sender(sender: Sender):
@@ -115,13 +109,11 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         kwargs['image_target_width'] = 1819
         kwargs['image_quality_factor'] = 1
         kwargs['image_target_height'] = 1311
-        img_base64 = base64.b64encode(_rotate_and_scale_image(postcard.picture_stream,
-                                                              img_format='jpeg',
-                                                              image_export=image_export,
-                                                              **kwargs)).decode('ascii')
-
-        img_text_base64 = base64.b64encode(self.create_text_image(postcard.message,
-                                                                  image_export=image_export)).decode('ascii')
+        img_base64 = base64.b64encode(rotate_and_scale_image(postcard.picture_stream,
+                                                             img_format='jpeg',
+                                                             image_export=image_export,
+                                                             **kwargs)).decode('ascii')
+        img_text_base64 = base64.b64encode(self.create_text_cover(postcard.message)).decode('ascii')
         endpoint = '/card/upload'
         payload = {
             'lang': 'en',
@@ -153,100 +145,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         logger.info(f'postcard submitted, orderid {payload.get("orderId")}')
         return payload
 
-    def create_text_image(self, text, image_export=False, **kwargs):
+    def create_text_cover(self, msg):
         """
-        Create a jpg with given text and return in bytes format, overwrite for customizations
+        Create a jpg with given text
         """
-        text_canvas_w = 720
-        text_canvas_h = 744
-        text_canvas_bg = 'white'
-        text_canvas_fg = 'black'
-        text_canvas_font_name = 'open_sans_emoji.ttf'
-
-        def load_font(size):
-            return ImageFont.truetype(pkg_resources.resource_stream(__name__, text_canvas_font_name), size)
-
-        def find_optimal_size(msg, min_size=20, max_size=400, min_line_w=1, max_line_w=80, padding=0):
-            """
-            Find optimal font size and line width for a given text
-            """
-
-            def line_width(font_size, padding=70):
-                l = min_line_w
-                r = max_line_w
-                font = load_font(font_size)
-                while l < r:
-                    n = floor((l + r) / 2)
-                    t = ''.join([char * n for char in '1'])
-                    font_w, font_h = font.getsize(t)
-                    font_w = font_w + (2 * padding)
-                    if font_w >= text_canvas_w:
-                        r = n - 1
-                        pass
-                    else:
-                        l = n + 1
-                        pass
-                return n
-
-            size_l = min_size
-            size_r = max_size
-            last_line_w = 0
-            last_size = 0
-
-            while size_l <= size_r:
-                size = floor((size_l + size_r) / 2.0)
-                last_size = size
-                line_w = line_width(size)
-                last_line_w = line_w
-
-                lines = textwrap.wrap(msg, width=line_w)
-                font = load_font(size)
-                total_w, line_h = font.getsize(msg)
-                tot_height = len(lines) * line_h
-
-                if tot_height + (2 * padding) < text_canvas_h:
-                    start_y = (text_canvas_h - tot_height) / 2
-                else:
-                    start_y = 0
-
-                if start_y == 0:
-                    size_r = size - 1
-                else:
-                    size_l = size + 1
-
-            return last_size, last_line_w
-
-        def center_y(lines, font_h):
-            tot_height = len(lines) * font_h
-            if tot_height < text_canvas_h:
-                return (text_canvas_h - tot_height) / 2
-            else:
-                return 0
-
-        size, line_w = find_optimal_size(text, padding=50)
-        logger.debug(f'using font with size: {size}, width: {line_w}')
-
-        font = load_font(size)
-        font_w, font_h = font.getsize(text)
-        lines = textwrap.wrap(text, width=line_w)
-        text_y_start = center_y(lines, font_h)
-
-        canvas = Image.new('RGB', (text_canvas_w, text_canvas_h), text_canvas_bg)
-        draw = ImageDraw.Draw(canvas)
-        for line in lines:
-            width, height = font.getsize(line)
-            draw.text(((text_canvas_w - width) / 2, text_y_start), line,
-                      font=font,
-                      fill=text_canvas_fg,
-                      embedded_color=True)
-            text_y_start += (height)
-
-        if image_export:
-            name = strftime("postcard_creator_export_%Y-%m-%d_%H-%M-%S_text.jpg", gmtime())
-            path = os.path.join(_get_trace_postcard_sent_dir(), name)
-            logger.info('exporting image to {} (image_export=True)'.format(path))
-            canvas.save(path)
-
-        img_byte_arr = io.BytesIO()
-        canvas.save(img_byte_arr, format='jpeg')
-        return img_byte_arr.getvalue()
+        return create_text_image(msg, image_export=True)

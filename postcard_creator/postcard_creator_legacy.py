@@ -4,7 +4,8 @@ import pkg_resources
 import requests
 
 from postcard_creator.postcard_creator import PostcardCreatorException, _dump_request, \
-    _encode_text, _rotate_and_scale_image, _send_free_card_defaults, logger, PostcardCreatorBase
+    _encode_text, _send_free_card_defaults, logger, PostcardCreatorBase
+from postcard_creator.postcard_img_util import rotate_and_scale_image
 
 
 def _format_recipient(recipient):
@@ -100,7 +101,7 @@ class PostcardCreatorLegacy(PostcardCreatorBase):
         user_id = user['userId']
         card_id = self._create_card(user)
 
-        picture_stream = _rotate_and_scale_image(postcard.picture_stream, **kwargs)
+        picture_stream = rotate_and_scale_image(postcard.picture_stream, **kwargs)
         asset_response = self._upload_asset(user, card_id=card_id, picture_stream=picture_stream)
         self._set_card_recipient(user_id=user_id, card_id=card_id, postcard=postcard)
         self._set_svg_page(1, user_id, card_id, self._get_frontpage(asset_id=asset_response['asset_id']))
