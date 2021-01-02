@@ -7,10 +7,11 @@ olefile==0.44
 Pillow==6.2.0
 pluggy==0.4.0
 py==1.4.34
-python-resize-image==1.1.11
+python-resize-image==1.1.19
 requests==2.20.0
 requests-toolbelt==0.8.0
 responses==0.5.1
 six==1.10.0
 tox==2.7.0
 urllib3==1.24.2
+colorthief==0.2.1

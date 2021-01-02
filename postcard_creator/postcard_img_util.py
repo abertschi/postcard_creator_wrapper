@@ -7,27 +7,30 @@ from time import strftime, gmtime
 
 import pkg_resources
 from PIL import ImageDraw, ImageFont, Image
+from colorthief import ColorThief
 from resizeimage import resizeimage
 
 from postcard_creator.postcard_creator import logger, _get_trace_postcard_sent_dir
+
 
 def rotate_and_scale_image(file, image_target_width=154,
                            image_target_height=111,
                            image_quality_factor=20,
                            image_rotate=True,
                            image_export=False,
+                           enforce_size=False, # = True, will not make image smaller than given w/h
                            img_format='PNG',
                            **kwargs):
-
     with Image.open(file) as image:
         if image_rotate and image.width < image.height:
             image = image.rotate(90, expand=True)
             logger.debug('rotating image by 90 degrees')
 
-        if image.width < image_quality_factor * image_target_width \
-                or image.height < image_quality_factor * image_target_height:
-            factor_width = math.floor(image.width / image_target_width)
-            factor_height = math.floor(image.height / image_target_height)
+        if not enforce_size and \
+                (image.width < image_quality_factor * image_target_width
+                 or image.height < image_quality_factor * image_target_height):
+            factor_width = image.width / image_target_width
+            factor_height = image.height / image_target_height
             factor = min([factor_height, factor_width])
 
             logger.debug('image is smaller than default for resize/fill. '
@@ -39,7 +42,24 @@ def rotate_and_scale_image(file, image_target_width=154,
         logger.debug('resizing image from {}x{} to {}x{}'
                      .format(image.width, image.height, width, height))
 
-        cover = resizeimage.resize_cover(image, [width, height], validate=True)
+        # XXX: swissid endpoint expect specific size for postcard
+        # if we have an image which is too small, do not upsample but rather center image and fill
+        # with boundary color which is most dominant color in image
+        try:
+            cover = resizeimage.resize_cover(image, [width, height])
+        except Exception as e:
+            logger.warning(e)
+            logger.warning(f'resizing image from {image.width}x{image.height} to {width}x{height} failed.'
+                           f' using resize_contain mode as a fallback. Expect boundaries around img')
+
+            color_thief = ColorThief(file)
+            (r, g, b) = color_thief.get_color(quality=1)
+            color = (r, g, b, 0)
+            cover = resizeimage.resize_contain(image, [width, height], bg_color=color)
+            image_export = True
+            logger.warning(f"using image boundary color {color}, exporting image for visual inspection.")
+
+        cover = cover.convert("RGB")
         with io.BytesIO() as f:
             cover.save(f, img_format)
             scaled = f.getvalue()
@@ -53,10 +73,9 @@ def rotate_and_scale_image(file, image_target_width=154,
     return scaled
 
 
-
 def create_text_image(text, image_export=False, **kwargs):
     """
-    Create a jpg with given text and return in bytes format, overwrite for customizations
+    Create a jpg with given text and return in bytes format
     """
     text_canvas_w = 720
     text_canvas_h = 744

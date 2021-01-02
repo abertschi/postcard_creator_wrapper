@@ -112,6 +112,7 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
         img_base64 = base64.b64encode(rotate_and_scale_image(postcard.picture_stream,
                                                              img_format='jpeg',
                                                              image_export=image_export,
+                                                             enforce_size=True,
                                                              **kwargs)).decode('ascii')
         img_text_base64 = base64.b64encode(self.create_text_cover(postcard.message)).decode('ascii')
         endpoint = '/card/upload'
