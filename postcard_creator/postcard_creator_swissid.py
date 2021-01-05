@@ -4,30 +4,30 @@ import requests
 
 from postcard_creator.postcard_img_util import create_text_image, rotate_and_scale_image
 from postcard_creator.postcard_creator import PostcardCreatorBase, PostcardCreatorException, Recipient, Sender, \
-    _dump_request, _encode_text, _send_free_card_defaults, logger
+    _dump_request, _send_free_card_defaults, logger
 
 
 def _format_sender(sender: Sender):
     return {
-        'city': _encode_text(sender.place),
-        'company': _encode_text(sender.company),
-        'firstname': _encode_text(sender.prename),
-        'lastname': _encode_text(sender.lastname),
-        'street': _encode_text(sender.street),
+        'city': sender.place,
+        'company': sender.company,
+        'firstname': sender.prename,
+        'lastname': sender.lastname,
+        'street': sender.street,
         'zip': sender.zip_code
     }
 
 
 def _format_recipient(recipient: Recipient):
     return {
-        'city': _encode_text(recipient.place),
-        'company': _encode_text(recipient.company),
-        'companyAddon': _encode_text(recipient.company_addition),
+        'city': recipient.place,
+        'company': recipient.company,
+        'companyAddon': recipient.company_addition,
         'country': 'SWITZERLAND',
-        'firstname': _encode_text(recipient.prename),
-        'lastname': _encode_text(recipient.lastname),
-        'street': _encode_text(recipient.street),
-        'title': _encode_text(recipient.salutation),
+        'firstname': recipient.prename,
+        'lastname': recipient.lastname,
+        'street': recipient.street,
+        'title': recipient.salutation,
         'zip': recipient.zip_code,
     }
 
