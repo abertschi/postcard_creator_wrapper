@@ -143,8 +143,8 @@ class PostcardCreatorSwissId(PostcardCreatorBase):
 
         self._validate_model_response(endpoint, payload)
 
-        logger.info(f'postcard submitted, orderid {payload.get("orderId")}')
-        return payload
+        logger.info(f'postcard submitted, orderid {payload["model"].get("orderId")}')
+        return payload['model']
 
     def create_text_cover(self, msg):
         """
