@@ -1,28 +1,5 @@
-try: # for pip >= 10
-    from pip._internal.req import parse_requirements
-except ImportError: # for pip <= 9.0.3
-    from pip.req import parse_requirements
-
-from setuptools import setup
-import codecs
-import os
-import re
+from setuptools import setup, find_packages
 from postcard_creator import __version__
-
-here = os.path.abspath(os.path.dirname(__file__))
-
-def read(*parts):
-    return codecs.open(os.path.join(here, *parts), 'r').read()
-
-
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
-
 
 reqs = [
     'beautifulsoup4',
@@ -32,7 +9,8 @@ reqs = [
     'idna',
     'requests',
     'urllib3',
-    'python_resize_image'
+    'python_resize_image',
+    'colorthief'
 ]
 
 setup(
@@ -41,9 +19,13 @@ setup(
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
-    install_requires=reqs,
+    autor_email='hi@abertschi.ch',
+    # install_requires=reqs,
     description='A python wrapper around the Rest API of the Swiss Postcard creator',
-    packages=['postcard_creator'],
+    packages=find_packages(where='postcard_creator'),
+    package_dir={
+        '': 'postcard_creator',
+    },
     platforms='any',
     keywords='postcard creator swiss',
     classifiers=[
@@ -61,7 +43,8 @@ setup(
         'Programming Language :: Python :: 3.8',
     ],
     setup_requires=['pytest-runner'],
-    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg', 'open_sans_emoji.ttf']}
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg', 'open_sans_emoji.ttf']},
+    test_suite = 'tests',
     # extras_require={
     #     ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
     # }
