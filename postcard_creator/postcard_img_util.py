@@ -92,7 +92,7 @@ def create_text_image(text, image_export=False, **kwargs):
         """
 
         if min_line_w >= max_line_w:
-            raise Exception("illegal arguments, max_line_w < max_line_w needed")
+            raise Exception("illegal arguments, min_line_w < max_line_w needed")
 
         def line_width(font_size, line_padding=70):
             l = min_line_w
