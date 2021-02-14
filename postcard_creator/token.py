@@ -18,12 +18,6 @@ logger = logging.getLogger('postcard_creator')
 logging.addLevelName(LOGGING_TRACE_LVL, 'TRACE')
 setattr(logger, 'trace', lambda *args: logger.log(LOGGING_TRACE_LVL, *args))
 
-request_headers = {
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
-                  'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                  'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
-}
-
 
 def base64_encode(string):
     encoded = base64.urlsafe_b64encode(string).decode('ascii')
@@ -41,8 +35,10 @@ def _log_response(h):
         logger.debug(h.request.method + ': ' + str(h) + ' ' + h.url)
     logger.debug(h.request.method + ': ' + str(h) + ' ' + h.url)
 
+
 def _print_request(response):
     logger.debug(' {} {} [{}]'.format(response.request.method, response.request.url, response.status_code))
+
 
 def _dump_request(response):
     _print_request(response)
@@ -70,6 +66,11 @@ class Token(object):
                           'AppleWebKit/537.36 (KHTML, like Gecko) ' +
                           'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Origin': '{}account.post.ch'.format(self.protocol)
+        }
+        self.request_headers = {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
+                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         }
 
         self.token = None
@@ -212,7 +213,7 @@ class Token(object):
         url = 'https://pccweb.api.post.ch/OAuth/authorization?'
         resp = session.get(url + urllib.parse.urlencode(init_data),
                            allow_redirects=True,
-                           headers=request_headers)
+                           headers=self.request_headers)
         _log_and_dump(resp)
 
         saml_payload = {
@@ -226,7 +227,7 @@ class Token(object):
         resp = session.post(url,
                             data=saml_payload,
                             allow_redirects=True,
-                            headers=request_headers)
+                            headers=self.request_headers)
         _log_and_dump(resp)
         if len(resp.history) == 0:
             raise PostcardCreatorException('fail to fetch ' + url)
@@ -262,7 +263,7 @@ class Token(object):
         # submit username and password
         url = "https://login.swissid.ch/api-login/authenticate/basic?locale=en&goto=" + goto_param + \
               "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
-        headers = request_headers
+        headers = self.request_headers
         headers['authId'] = auth_id
         step_data = {
             'username': username,
@@ -277,12 +278,12 @@ class Token(object):
             logger.info("failed to login. username/password wrong?")
             raise PostcardCreatorException("failed to login, username/password wrong?")
 
-        resp = session.get(url, headers=request_headers, allow_redirects=True)
+        resp = session.get(url, headers=self.request_headers, allow_redirects=True)
         _log_and_dump(resp)
 
         step7_soup = BeautifulSoup(resp.text, 'html.parser')
         url = step7_soup.find('form', {'name': 'LoginForm'})['action']
-        resp = session.post(url, headers=request_headers)
+        resp = session.post(url, headers=self.request_headers)
         _log_and_dump(resp)
 
         # find saml response
@@ -294,7 +295,7 @@ class Token(object):
 
         # prepare access token
         url = "https://pccweb.api.post.ch/OAuth/"  # important: '/' at the end
-        customer_headers = request_headers
+        customer_headers = self.request_headers
         customer_headers['Origin'] = 'https://account.post.ch'
         customer_headers['X-Requested-With'] = 'ch.post.it.pcc'
         customer_headers['Upgrade-Insecure-Requests'] = str(1)
@@ -325,7 +326,7 @@ class Token(object):
         url = 'https://pccweb.api.post.ch/OAuth/token'
         resp = requests.post(url,  # we do not use session here!
                              data=data,
-                             headers=request_headers,
+                             headers=self.request_headers,
                              allow_redirects=False)
         _log_and_dump(resp)
 
