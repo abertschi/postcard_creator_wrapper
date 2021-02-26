@@ -67,6 +67,7 @@ logger = logging.getLogger('postcard_creator')
 
 ## Test
 ```sh
+pip install -r requirements.txt
 pip install -r requirements-dev.txt
 pip install -e .
 pytest
@@ -77,7 +78,7 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
-### v2.0, 2020-12
+### v2.0, 2021-02
 - support of new swissid authentication (access_token with code/ code_verifier)
 - support of new endpoints at https://pccweb.api.post.ch/secure/api/mobile/v1
 - class PostcardCreator is a proxy which instantiates an endpoint wrapper compatible with authentication method of token, underlying wrappers are: PostcardCreatorSwissId, PostcardCreatorLegacy 
