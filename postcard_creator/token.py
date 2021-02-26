@@ -18,12 +18,6 @@ logger = logging.getLogger('postcard_creator')
 logging.addLevelName(LOGGING_TRACE_LVL, 'TRACE')
 setattr(logger, 'trace', lambda *args: logger.log(LOGGING_TRACE_LVL, *args))
 
-request_headers = {
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
-                  'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                  'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
-}
-
 
 def base64_encode(string):
     encoded = base64.urlsafe_b64encode(string).decode('ascii')
@@ -41,8 +35,10 @@ def _log_response(h):
         logger.debug(h.request.method + ': ' + str(h) + ' ' + h.url)
     logger.debug(h.request.method + ': ' + str(h) + ' ' + h.url)
 
+
 def _print_request(response):
     logger.debug(' {} {} [{}]'.format(response.request.method, response.request.url, response.status_code))
+
 
 def _dump_request(response):
     _print_request(response)
@@ -65,11 +61,16 @@ class Token(object):
         self.base = '{}account.post.ch'.format(self.protocol)
         self.swissid = '{}login.swissid.ch'.format(self.protocol)
         self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
-        self.headers = {
+        self.legacy_headers = {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
                           'AppleWebKit/537.36 (KHTML, like Gecko) ' +
                           'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Origin': '{}account.post.ch'.format(self.protocol)
+        }
+        self.swissid_headers = {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
+                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         }
 
         self.token = None
@@ -152,13 +153,13 @@ class Token(object):
             'isiwebpasswd': password,
             'confirmLogin': ''
         }
-        response1 = session.get(url=url + query, headers=self.headers)
+        response1 = session.get(url=url + query, headers=self.legacy_headers)
         _dump_request(response1)
 
-        response2 = session.post(url=url + query, headers=self.headers, data=data)
+        response2 = session.post(url=url + query, headers=self.legacy_headers, data=data)
         _dump_request(response2)
 
-        response3 = session.post(url=url + query, headers=self.headers)
+        response3 = session.post(url=url + query, headers=self.legacy_headers)
         _dump_request(response3)
 
         if any(e.status_code != 200 for e in [response1, response2, response3]):
@@ -175,7 +176,7 @@ class Token(object):
                 self.protocol),
             'SAMLResponse': saml_response.get('value')
         }
-        response = session.post(url=self.token_url, headers=self.headers, data=payload)
+        response = session.post(url=self.token_url, headers=self.legacy_headers, data=payload)
         _dump_request(response)
 
         if response.status_code != 200 or 'access_token' not in response.json():
@@ -212,7 +213,7 @@ class Token(object):
         url = 'https://pccweb.api.post.ch/OAuth/authorization?'
         resp = session.get(url + urllib.parse.urlencode(init_data),
                            allow_redirects=True,
-                           headers=request_headers)
+                           headers=self.swissid_headers)
         _log_and_dump(resp)
 
         saml_payload = {
@@ -226,7 +227,7 @@ class Token(object):
         resp = session.post(url,
                             data=saml_payload,
                             allow_redirects=True,
-                            headers=request_headers)
+                            headers=self.swissid_headers)
         _log_and_dump(resp)
         if len(resp.history) == 0:
             raise PostcardCreatorException('fail to fetch ' + url)
@@ -262,7 +263,7 @@ class Token(object):
         # submit username and password
         url = "https://login.swissid.ch/api-login/authenticate/basic?locale=en&goto=" + goto_param + \
               "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
-        headers = request_headers
+        headers = self.swissid_headers
         headers['authId'] = auth_id
         step_data = {
             'username': username,
@@ -277,12 +278,12 @@ class Token(object):
             logger.info("failed to login. username/password wrong?")
             raise PostcardCreatorException("failed to login, username/password wrong?")
 
-        resp = session.get(url, headers=request_headers, allow_redirects=True)
+        resp = session.get(url, headers=self.swissid_headers, allow_redirects=True)
         _log_and_dump(resp)
 
         step7_soup = BeautifulSoup(resp.text, 'html.parser')
         url = step7_soup.find('form', {'name': 'LoginForm'})['action']
-        resp = session.post(url, headers=request_headers)
+        resp = session.post(url, headers=self.swissid_headers)
         _log_and_dump(resp)
 
         # find saml response
@@ -294,7 +295,7 @@ class Token(object):
 
         # prepare access token
         url = "https://pccweb.api.post.ch/OAuth/"  # important: '/' at the end
-        customer_headers = request_headers
+        customer_headers = self.swissid_headers
         customer_headers['Origin'] = 'https://account.post.ch'
         customer_headers['X-Requested-With'] = 'ch.post.it.pcc'
         customer_headers['Upgrade-Insecure-Requests'] = str(1)
@@ -306,7 +307,7 @@ class Token(object):
                             data=saml_payload,
                             allow_redirects=False)  # do not follow redirects as we cannot redirect to android uri
         try:
-            code_resp_uri = resp.headers['Location']
+            code_resp_uri = resp.legacy_headers['Location']
             init_data = parse_qs(urlparse(code_resp_uri).query)
             resp_code = init_data['code'][0]
         except Exception as e:
@@ -325,7 +326,7 @@ class Token(object):
         url = 'https://pccweb.api.post.ch/OAuth/token'
         resp = requests.post(url,  # we do not use session here!
                              data=data,
-                             headers=request_headers,
+                             headers=self.swissid_headers,
                              allow_redirects=False)
         _log_and_dump(resp)
 
@@ -342,3 +343,4 @@ class Token(object):
             'type': self.token_type,
             'implementation': self.token_implementation
         }
+    

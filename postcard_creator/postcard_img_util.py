@@ -91,6 +91,9 @@ def create_text_image(text, image_export=False, **kwargs):
         Find optimal font size and line width for a given text
         """
 
+        if min_line_w >= max_line_w:
+            raise Exception("illegal arguments, min_line_w < max_line_w needed")
+
         def line_width(font_size, line_padding=70):
             l = min_line_w
             r = max_line_w
@@ -141,7 +144,7 @@ def create_text_image(text, image_export=False, **kwargs):
     def center_y(lines, font_h):
         tot_height = len(lines) * font_h
         if tot_height < text_canvas_h:
-            return (text_canvas_h - tot_height) / 2
+            return (text_canvas_h - tot_height) // 2
         else:
             return 0
 
@@ -157,7 +160,7 @@ def create_text_image(text, image_export=False, **kwargs):
     draw = ImageDraw.Draw(canvas)
     for line in lines:
         width, height = font.getsize(line)
-        draw.text(((text_canvas_w - width) / 2, text_y_start), line,
+        draw.text(((text_canvas_w - width) // 2, text_y_start), line,
                   font=font,
                   fill=text_canvas_fg,
                   embedded_color=True)
