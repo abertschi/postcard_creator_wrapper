@@ -1,5 +1,3 @@
-postcard_creator_wrapper is currently malfunctioning. track the state here:
-https://github.com/abertschi/postcard_creator_wrapper/issues/20
 # Postcard Creator 
 
 [![PyPI version](https://img.shields.io/pypi/v/postcard_creator.svg)](https://badge.fury.io/py/postcard_creator) [![Build Status](https://travis-ci.org/abertschi/postcard_creator_wrapper.svg?branch=master)](https://travis-ci.org/abertschi/postcard_creator_wrapper) [![codecov](https://codecov.io/gh/abertschi/postcard_creator_wrapper/branch/master/graph/badge.svg)](https://codecov.io/gh/abertschi/postcard_creator_wrapper) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/970d46284d854b11ba4fb0c9cee760c7)](https://www.codacy.com/app/abertschi/postcard_creator_wrapper?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=abertschi/postcard_creator_wrapper&amp;utm_campaign=Badge_Grade) [![PyPI version](https://img.shields.io/pypi/pyversions/postcard_creator.svg)](https://pypi.python.org/pypi/postcard_creator) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
