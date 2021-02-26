@@ -1,31 +1,33 @@
+import base64
+import datetime
+import hashlib
+import logging
+import re
+import secrets
+import urllib
+from urllib.parse import parse_qs, urlparse
+
+import requests
 from bs4 import BeautifulSoup
-from postcard_creator.postcard_creator import PostcardCreatorException
 from requests_toolbelt.utils import dump
 
-import datetime
-import re
-import urllib
-import requests
-import logging
-import json
-
+from postcard_creator.postcard_creator import PostcardCreatorException
 
 LOGGING_TRACE_LVL = 5
 logger = logging.getLogger('postcard_creator')
 logging.addLevelName(LOGGING_TRACE_LVL, 'TRACE')
 setattr(logger, 'trace', lambda *args: logger.log(LOGGING_TRACE_LVL, *args))
 
-swissid_headers = {
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
-                  'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                  'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
 
-    # the authenticate endpoint (step 3 and later) needs the following X headers to work
-    'X-NoSession': 'true',
-    'X-Password': 'anonymous',
-    'X-Requested-With': 'XMLHttpRequest',
-    'X-Username': 'anonymous'
-}
+def base64_encode(string):
+    encoded = base64.urlsafe_b64encode(string).decode('ascii')
+    return encoded.rstrip("=")
+
+
+def base64_decode(string):
+    padding = 4 - (len(string) % 4)
+    string = string + ("=" * padding)
+    return base64.urlsafe_b64decode(string)
 
 
 def _log_response(h):
@@ -34,7 +36,12 @@ def _log_response(h):
     logger.debug(h.request.method + ': ' + str(h) + ' ' + h.url)
 
 
+def _print_request(response):
+    logger.debug(' {} {} [{}]'.format(response.request.method, response.request.url, response.status_code))
+
+
 def _dump_request(response):
+    _print_request(response)
     data = dump.dump_all(response)
     try:
         logger.trace(data.decode())
@@ -54,11 +61,16 @@ class Token(object):
         self.base = '{}account.post.ch'.format(self.protocol)
         self.swissid = '{}login.swissid.ch'.format(self.protocol)
         self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
-        self.headers = {
+        self.legacy_headers = {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
                           'AppleWebKit/537.36 (KHTML, like Gecko) ' +
                           'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
             'Origin': '{}account.post.ch'.format(self.protocol)
+        }
+        self.swissid_headers = {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
+                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
         }
 
         self.token = None
@@ -84,60 +96,55 @@ class Token(object):
         if method not in methods:
             raise PostcardCreatorException('unknown method. choose from: ' + methods)
 
-        session = None
-        saml_response = None
         success = False
+        access_token = None
+        implementation_type = ''
         if method != 'swissid':
-            logging.info("using legacy username password authentication")
+            logger.info("using legacy username password authentication")
+            session = self._create_session()
             try:
-                session = self._create_session()
-                saml_response = self._get_legacy_saml_response(session, username, password)
+                access_token = self._get_access_token_legacy(session, username, password)
+                logger.debug('legacy username/password authentication was successful')
                 success = True
-            except PostcardCreatorException as e:
-                logging.info("legacy username password authentication failed")
-                logging.info(e)
-
+                implementation_type = 'legacy'
+            except Exception as e:
+                logger.info("legacy username password authentication failed")
+                logger.info(e)
+                if method == 'mixed':
+                    logger.info("Trying swissid now because method=legacy")
+                else:
+                    logger.info("giving up")
+                    raise e
+                pass
         if method != 'legacy' and not success:
-            logging.info("using swissid username password authentication")
+            logger.info("using swissid username password authentication")
             try:
                 session = self._create_session()
-                saml_response = self._get_swissid_saml_response(session, username, password)
-            except PostcardCreatorException as e:
-                logging.info("swissid username password authentication failed")
-                logging.info(e)
-
-        payload = {
-            'RelayState': '{}postcardcreator.post.ch?inMobileApp=true&inIframe=false&lang=en'.format(self.protocol),
-            'SAMLResponse': saml_response
-        }
-
-        response = session.post(url=self.token_url, headers=self.headers, data=payload)
-        logger.debug(' post {}'.format(self.token_url))
-        _dump_request(response)
+                access_token = self._get_access_token_swissid(session, username, password)
+                logger.debug('swissid username/password authentication was successful')
+                implementation_type = 'swissid'
+            except Exception as e:
+                logger.info("swissid username password authentication failed")
+                logger.info(e)
+                raise e
 
         try:
-            if response.status_code != 200:
-                raise PostcardCreatorException()
-
-            access_token = json.loads(response.text)
+            logger.trace(access_token)
             self.token = access_token['access_token']
             self.token_type = access_token['token_type']
             self.token_expires_in = access_token['expires_in']
             self.token_fetched_at = datetime.datetime.now()
+            self.token_implementation = implementation_type
+            logger.info("access_token successfully fetched")
 
-        except PostcardCreatorException:
-            e = PostcardCreatorException(
-                'Could not get access_token. Something broke. '
-                'set increase debug verbosity to debug why')
-            e.server_response = response.text
+        except Exception as e:
+            logger.info("access_token does not contain required values. someting broke")
             raise e
-
-        logger.debug('username/password authentication was successful')
 
     def _create_session(self):
         return requests.Session()
 
-    def _get_legacy_saml_response(self, session, username, password):
+    def _get_access_token_legacy(self, session, username, password):
         url = '{}/SAML/IdentityProvider/'.format(self.base)
         query = '?login&app=pcc&service=pcc&targetURL=https%3A%2F%2Fpostcardcreator.post.ch' + \
                 '&abortURL=https%3A%2F%2Fpostcardcreator.post.ch&inMobileApp=true'
@@ -146,17 +153,14 @@ class Token(object):
             'isiwebpasswd': password,
             'confirmLogin': ''
         }
-        response1 = session.get(url=url + query, headers=self.headers)
+        response1 = session.get(url=url + query, headers=self.legacy_headers)
         _dump_request(response1)
-        logger.debug(' get {}'.format(url))
 
-        response2 = session.post(url=url + query, headers=self.headers, data=data)
+        response2 = session.post(url=url + query, headers=self.legacy_headers, data=data)
         _dump_request(response2)
-        logger.debug(' post {}'.format(url))
 
-        response3 = session.post(url=url + query, headers=self.headers)
+        response3 = session.post(url=url + query, headers=self.legacy_headers)
         _dump_request(response3)
-        logger.debug(' post {}'.format(url))
 
         if any(e.status_code != 200 for e in [response1, response2, response3]):
             raise PostcardCreatorException('Wrong user credentials')
@@ -167,99 +171,169 @@ class Token(object):
         if saml_response is None or saml_response.get('value') is None:
             raise PostcardCreatorException('Username/password authentication failed. '
                                            'Are your credentials valid?.')
-
-        return saml_response.get('value')
-
-    def _get_swissid_saml_response(self, session, username, password):
-        logger.debug("--- 1. request swissid portal website")
-        step1_url = 'https://account.post.ch/SAML/IdentityProvider/?login&'
-        step1_query = {
-            'app': 'pcc',
-            'service': 'pcc',
-            'targetURL': 'https://postcardcreator.post.ch',
-            'abortURL': 'https://postcardcreator.post.ch'
+        payload = {
+            'RelayState': '{}postcardcreator.post.ch?inMobileApp=true&inIframe=false&lang=en'.format(
+                self.protocol),
+            'SAMLResponse': saml_response.get('value')
         }
-        step1_payload = {
+        response = session.post(url=self.token_url, headers=self.legacy_headers, data=payload)
+        _dump_request(response)
+
+        if response.status_code != 200 or 'access_token' not in response.json():
+            raise PostcardCreatorException('failed to obtain access_token: ' + response.text)
+
+        return response.json()
+
+    def _swiss_id_get_code_verifier(self):
+        return base64_encode(secrets.token_bytes(64))
+
+    def _swiss_id_get_code(self, code_verifier):
+        m = hashlib.sha256()
+        m.update(code_verifier.encode('utf-8'))
+        return base64_encode(m.digest())
+
+    def _get_access_token_swissid(self, session, username, password):
+        code_verifier = self._swiss_id_get_code_verifier()
+        code_resp_uri = self._swiss_id_get_code(code_verifier)
+        redirect_uri = 'ch.post.pcc://auth/1016c75e-aa9c-493e-84b8-4eb3ba6177ef'
+        client_id = 'ae9b9894f8728ca78800942cda638155'
+        client_secret = '89ff451ede545c3f408d792e8caaddf0'
+
+        init_data = {
+            'client_id': client_id,
+            'response_type': 'code',
+            'redirect_uri': redirect_uri,
+            'scope': 'PCCWEB offline_access',
+            'response_mode': 'query',
+            'state': 'abcd',
+            'code_challenge': code_resp_uri,
+            'code_challenge_method': 'S256',
+            'lang': 'en'
+        }
+        url = 'https://pccweb.api.post.ch/OAuth/authorization?'
+        resp = session.get(url + urllib.parse.urlencode(init_data),
+                           allow_redirects=True,
+                           headers=self.swissid_headers)
+        _log_and_dump(resp)
+
+        saml_payload = {
             'externalIDP': 'externalIDP'
         }
-        step1_r = session.post(step1_url + urllib.parse.urlencode(step1_query),
-                               data=step1_payload, allow_redirects=True,
-                               headers=swissid_headers)
-        _log_and_dump(step1_r)
-        if len(step1_r.history) == 0:
-            raise PostcardCreatorException('step 1 in swissid authentication requires redirections. not avalable' +
-                                           'did something break?')
-        step1_goto_url = step1_r.history[len(step1_r.history) - 1]
+        url = 'https://account.post.ch/idp/?login' \
+              '&targetURL=https://pccweb.api.post.ch/SAML/ServiceProvider/' \
+              '?redirect_uri=' + redirect_uri + \
+              '&profile=default' \
+              '&app=pccwebapi&inMobileApp=true&layoutType=standard'
+        resp = session.post(url,
+                            data=saml_payload,
+                            allow_redirects=True,
+                            headers=self.swissid_headers)
+        _log_and_dump(resp)
+        if len(resp.history) == 0:
+            raise PostcardCreatorException('fail to fetch ' + url)
 
-        logger.debug("--- 2. follow redirects and get goto_param")
-        step2_url = 'https://login.swissid.ch/idp/json/realms/root/realms/sesam/serverinfo/*'
-        step2_r = session.get(step2_url, allow_redirects=True)
-        _log_and_dump(step2_r)
-
-        goto_param = re.search(r'&goto=(.*?)$', step1_goto_url.url).group(1)
+        step1_goto_url = resp.history[len(resp.history) - 1]
+        goto_param = re.search(r'goto=(.*?)$', step1_goto_url.url).group(1)
+        try:
+            goto_param = goto_param.split('&')[0]
+        except Exception as e:
+            # only use goto_param without further params
+            pass
         logger.trace("goto parm=" + goto_param)
         if goto_param is None or goto_param == '':
-            raise PostcardCreatorException('step 2 in swissid authentication failed: no goto found')
+            raise PostcardCreatorException('swissid: cannot fetch goto param')
 
-        logger.debug("--- 3. get web form for username/password")
-        step3_url = 'https://login.swissid.ch/idp/json/realms/root/realms/sesam/authenticate?' + \
-                    'locale=en&authIndexType=service&authIndexValue=Sesam-Push-Auth&goto=' + goto_param
-        step3_r = session.post(step3_url, data='', headers=swissid_headers)
-        _log_and_dump(step3_r)
+        url = "https://login.swissid.ch/api-login/authenticate/token/status?locale=en&goto=" + goto_param + \
+              "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
+        resp = session.get(url, allow_redirects=True)
+        _log_and_dump(resp)
 
-        logger.debug("--- 4. submit username")
-        step3_json = step3_r.json()
-        logger.trace(step3_json)
+        url = "https://login.swissid.ch/api-login/welcome-pack?locale=en" + goto_param + \
+              "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
+        resp = session.get(url, allow_redirects=True)
+        _log_and_dump(resp)
 
-        step3_found_user = False
+        # login with username and password
+        url = 'https://login.swissid.ch/api-login/authenticate/init?locale=en&goto=' + goto_param + \
+              "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
+        resp = session.post(url, allow_redirects=True)
+        _log_and_dump(resp)
+        auth_id = resp.json()['tokens']['authId']
+
+        # submit username and password
+        url = "https://login.swissid.ch/api-login/authenticate/basic?locale=en&goto=" + goto_param + \
+              "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
+        headers = self.swissid_headers
+        headers['authId'] = auth_id
+        step_data = {
+            'username': username,
+            'password': password
+        }
+        resp = session.post(url, json=step_data, headers=headers, allow_redirects=True)
+        _log_and_dump(resp)
+
         try:
-            for c in step3_json['callbacks']:
-                if c.get('type') == 'NameCallback':
-                    c['input'][0]['value'] = username
-                    step3_found_user = True
-                    break
-        except Exception:
-            pass
-        if not step3_found_user:
-            raise PostcardCreatorException('step4 in swissid authentication failed. no username response found.')
+            url = resp.json()['nextAction']['successUrl']
+        except Exception as e:
+            logger.info("failed to login. username/password wrong?")
+            raise PostcardCreatorException("failed to login, username/password wrong?")
 
-        step4_r = session.post(step3_url, json=step3_json, headers=swissid_headers)
-        _log_and_dump(step4_r)
+        resp = session.get(url, headers=self.swissid_headers, allow_redirects=True)
+        _log_and_dump(resp)
 
-        logger.debug("--- 5. submit password")
-        step5_json = step4_r.json()
-        step5_found_password = False
-        try:
-            for c in step5_json['callbacks']:
-                if c.get('type') == 'PasswordCallback':
-                    c['input'][0]['value'] = password
-                    step5_found_password = True
-                    break
-        except Exception:
-            pass
-        if not step5_found_password:
-            raise PostcardCreatorException('step5 in swissid authentication failed. are your credentials correct?')
-            pass
+        step7_soup = BeautifulSoup(resp.text, 'html.parser')
+        url = step7_soup.find('form', {'name': 'LoginForm'})['action']
+        resp = session.post(url, headers=self.swissid_headers)
+        _log_and_dump(resp)
 
-        step5_r = session.post(step3_url, json=step5_json, headers=swissid_headers)
-        _log_and_dump(step5_r)
-
-        logger.debug("--- 6. follow redirects to get SAML endpoint")
-        step6_r = session.get(urllib.parse.unquote(goto_param), allow_redirects=True, headers=swissid_headers)
-        _log_and_dump(step6_r)
-
-        logger.debug("--- step 7. get SAML response")
-        step7_r = session.post(step6_r.url, headers=swissid_headers)
-        _log_and_dump(step7_r)
-
-        step7_soup = BeautifulSoup(step7_r.text, 'html.parser')
+        # find saml response
+        step7_soup = BeautifulSoup(resp.text, 'html.parser')
         saml_response = step7_soup.find('input', {'name': 'SAMLResponse'})
 
         if saml_response is None or saml_response.get('value') is None:
-            raise PostcardCreatorException('Username/password authentication failed. '
-                                           'Are your credentials valid?.')
+            raise PostcardCreatorException('Username/password authentication failed. Are your credentials valid?.')
 
-        return saml_response.get('value')
+        # prepare access token
+        url = "https://pccweb.api.post.ch/OAuth/"  # important: '/' at the end
+        customer_headers = self.swissid_headers
+        customer_headers['Origin'] = 'https://account.post.ch'
+        customer_headers['X-Requested-With'] = 'ch.post.it.pcc'
+        customer_headers['Upgrade-Insecure-Requests'] = str(1)
+        saml_payload = {
+            'RelayState': step7_soup.find('input', {'name': 'RelayState'})['value'],
+            'SAMLResponse': saml_response.get('value')
+        }
+        resp = session.post(url, headers=customer_headers,
+                            data=saml_payload,
+                            allow_redirects=False)  # do not follow redirects as we cannot redirect to android uri
+        try:
+            code_resp_uri = resp.headers['Location']
+            init_data = parse_qs(urlparse(code_resp_uri).query)
+            resp_code = init_data['code'][0]
+        except Exception as e:
+            print(e)
+            raise PostcardCreatorException('response does not have code attribute: ' + url + '. Did endpoint break?')
+
+        # get access token
+        data = {
+            'grant_type': 'authorization_code',
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'code': resp_code,
+            'code_verifier': code_verifier,
+            'redirect_uri': redirect_uri,
+        }
+        url = 'https://pccweb.api.post.ch/OAuth/token'
+        resp = requests.post(url,  # we do not use session here!
+                             data=data,
+                             headers=self.swissid_headers,
+                             allow_redirects=False)
+        _log_and_dump(resp)
+
+        if 'access_token' not in resp.json() or resp.status_code != 200:
+            raise PostcardCreatorException("not able to fetch access token: " + resp.text)
+
+        return resp.json()
 
     def to_json(self):
         return {
@@ -267,4 +341,6 @@ class Token(object):
             'token': self.token,
             'expires_in': self.token_expires_in,
             'type': self.token_type,
+            'implementation': self.token_implementation
         }
+    

@@ -1,29 +1,8 @@
-try: # for pip >= 10
-    from pip._internal.req import parse_requirements
-except ImportError: # for pip <= 9.0.3
-    from pip.req import parse_requirements
+from setuptools import setup, find_packages
+from postcard_creator import __version__
 
-from setuptools import setup
-import codecs
-import os
-import re
-
-here = os.path.abspath(os.path.dirname(__file__))
-
-def read(*parts):
-    return codecs.open(os.path.join(here, *parts), 'r').read()
-
-
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
-
-
-reqs = [
+# XXX: Ensure that all dependencies are added here when releasing new version
+dependencies = [
     'beautifulsoup4',
     'Pillow',
     'requests-toolbelt',
@@ -31,35 +10,30 @@ reqs = [
     'idna',
     'requests',
     'urllib3',
-    'python_resize_image'
+    'python_resize_image',
+    'colorthief'
 ]
 
 setup(
     name='postcard_creator',
-    version='1.1', #find_version('postcard_creator', '__init__.py'),
+    version=__version__,
     url='http://github.com/abertschi/postcard_creator_wrapper',
     license='Apache Software License',
     author='Andrin Bertschi',
-    install_requires=reqs,
-    description='A python wrapper around the Rest API of the Swiss Postcard creator',
+    author_email='apps@abertschi.ch',
     packages=['postcard_creator'],
+    include_package_data=True,
+    install_requires=dependencies,
+    description='A python wrapper around the Rest API of the Swiss Postcard creator',
     platforms='any',
     keywords='postcard creator swiss',
     classifiers=[
-        # How mature is this project? Common values are
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
-        # Indicate who your project is intended for
         'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     setup_requires=['pytest-runner'],
-    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg']}
-    # extras_require={
-    #     ':python_version=="3.2"': ['virtualenv<14', 'pytest<3'],
-    # }
+    package_data={'postcard_creator': ['page_1.svg', 'page_2.svg', 'open_sans_emoji.ttf', 'OpenSans-Regular.ttf']},
+    test_suite = 'tests',
 )
