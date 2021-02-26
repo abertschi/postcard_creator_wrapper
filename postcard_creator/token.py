@@ -307,7 +307,7 @@ class Token(object):
                             data=saml_payload,
                             allow_redirects=False)  # do not follow redirects as we cannot redirect to android uri
         try:
-            code_resp_uri = resp.legacy_headers['Location']
+            code_resp_uri = resp.headers['Location']
             init_data = parse_qs(urlparse(code_resp_uri).query)
             resp_code = init_data['code'][0]
         except Exception as e:
