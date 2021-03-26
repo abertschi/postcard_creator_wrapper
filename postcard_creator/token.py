@@ -232,8 +232,8 @@ class Token(object):
         if len(resp.history) == 0:
             raise PostcardCreatorException('fail to fetch ' + url)
 
-        step1_goto_url = resp.history[len(resp.history) - 1]
-        goto_param = re.search(r'goto=(.*?)$', step1_goto_url.url).group(1)
+        step1_goto_url = resp.history[len(resp.history) - 1].headers['Location']
+        goto_param = re.search(r'goto=(.*?)$', step1_goto_url).group(1)
         try:
             goto_param = goto_param.split('&')[0]
         except Exception as e:
