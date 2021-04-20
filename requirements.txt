@@ -6,7 +6,7 @@ idna==2.5
 olefile==0.44
 Pillow>=7.1.0
 pluggy==0.4.0
-py==1.4.34
+py==1.10.0
 python-resize-image==1.1.19
 requests==2.25.1
 requests-toolbelt==0.8.0
