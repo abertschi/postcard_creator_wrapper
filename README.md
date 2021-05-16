@@ -76,6 +76,9 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
+### v2.1, 2021-05-15
+- update requests to v2.25.1 to fix "AttributeError: 'NoneType' object has no attribute 'group'" in authentication. #27
+
 ### v2.0, 2021-02
 - support of new swissid authentication (access_token with code/ code_verifier)
 - support of new endpoints at https://pccweb.api.post.ch/secure/api/mobile/v1
@@ -102,6 +105,13 @@ pytest
 - do not use requirements.txt in setup.py anymore. set all requirements in 
 install_requires without explicit version numbers
 
+## Troubleshooting
+
+#### “The headers or library files could not be found for jpeg”
+`pip install` fails with the above error. Install libjpeg as discussed here
+https://stackoverflow.com/questions/44043906/the-headers-or-library-files-could-not-be-found-for-jpeg-installing-pillow-on
+
+
 ## Author
 
 Andrin Bertschi  
@@ -113,8 +123,3 @@ Andrin Bertschi
 
 <3
 
-## Troubleshooting
-
-### Pip install fails with “The headers or library files could not be found for jpeg”
-Install libjpeg as discussed here
-https://stackoverflow.com/questions/44043906/the-headers-or-library-files-could-not-be-found-for-jpeg-installing-pillow-on
