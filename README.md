@@ -76,7 +76,7 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
-### v2.1, 2021-05-15
+### v2.1, 2021-05-16
 - update requests to v2.25.1 to fix "AttributeError: 'NoneType' object has no attribute 'group'" in authentication. #27
 
 ### v2.0, 2021-02
