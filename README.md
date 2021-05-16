@@ -112,3 +112,9 @@ Andrin Bertschi
 [Apache License 2.0](LICENSE.md)
 
 <3
+
+## Troubleshooting
+
+### Pip install fails with “The headers or library files could not be found for jpeg”
+Install libjpeg as discussed here
+https://stackoverflow.com/questions/44043906/the-headers-or-library-files-could-not-be-found-for-jpeg-installing-pillow-on
