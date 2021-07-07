@@ -29,6 +29,8 @@ def _format_recipient(recipient):
              recipient.place]]}
 
 
+# XXX: 21-07-07, Legacy endpoints are out of life
+@DeprecationWarning
 class PostcardCreatorLegacy(PostcardCreatorBase):
     def __init__(self, token=None):
         if token.token is None:
