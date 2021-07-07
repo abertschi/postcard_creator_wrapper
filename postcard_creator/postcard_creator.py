@@ -103,9 +103,10 @@ class PostcardCreator(object):
 
         if token.token is None:
             raise PostcardCreatorException('No Token given')
-        if token.token_implementation == 'legacy':
-            from postcard_creator.postcard_creator_legacy import PostcardCreatorLegacy
-            self.impl = PostcardCreatorLegacy(token)
+        # XXX: we no longer support 'legacy' endpoints as they are out of service
+        # if token.token_implementation == 'legacy':
+        #     from postcard_creator.postcard_creator_legacy import PostcardCreatorLegacy
+        #     self.impl = PostcardCreatorLegacy(token)
         else:
             from postcard_creator.postcard_creator_swissid import PostcardCreatorSwissId
             self.impl = PostcardCreatorSwissId(token)

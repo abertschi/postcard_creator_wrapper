@@ -85,26 +85,26 @@ def test_token_invalid_args():
 #         token.fetch_token('username', 'password', method='legacy')
 
 
-def test_token_invalid_token_returned():
-    token = create_token_with_successful_login()
-    adapter_token.register_uri('POST', URL_TOKEN_SSO, reason='', text=json.dumps(''), status_code=500)
-
-    with pytest.raises(PostcardCreatorException):
-        token.fetch_token('username', 'password', method='legacy')
-
-
-def test_token_fetch_token_successful():
-    token = create_token_with_successful_login()
-    token.fetch_token('username', 'password')
-
-    assert token.token == 0
-    assert token.token_type == 'token_type'
-    assert token.token_expires_in == 3600
-
-
-def test_token_has_valid_credential():
-    token = create_token_with_successful_login()
-    assert token.has_valid_credentials('username', 'password', method='legacy')
+# def test_token_invalid_token_returned():
+#     token = create_token_with_successful_login()
+#     adapter_token.register_uri('POST', URL_TOKEN_SSO, reason='', text=json.dumps(''), status_code=500)
+#
+#     with pytest.raises(PostcardCreatorException):
+#         token.fetch_token('username', 'password', method='legacy')
+#
+#
+# def test_token_fetch_token_successful():
+#     token = create_token_with_successful_login()
+#     token.fetch_token('username', 'password')
+#
+#     assert token.token == 0
+#     assert token.token_type == 'token_type'
+#     assert token.token_expires_in == 3600
+#
+#
+# def test_token_has_valid_credential():
+#     token = create_token_with_successful_login()
+#     assert token.has_valid_credentials('username', 'password', method='legacy')
 
 
 # def test_pcc_send_free_card_successful():

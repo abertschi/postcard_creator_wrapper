@@ -111,3 +111,5 @@ local_dev
 page_2_ad_free.svg
 foo
 .DS_Store
+/venv2/
+/.postcard_creator_wrapper_sent/
