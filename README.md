@@ -61,7 +61,7 @@ logger = logging.getLogger('postcard_creator')
 
 ## Example
 - [Postcards](https://github.com/abertschi/postcards) is a commandline interface built around this library.
-- See [tests](./tests/) for more usage examples.
+- See [postcard-love](https://github.com/abertschi/postcard-love) for more usage examples.
 
 ## Test
 ```sh
