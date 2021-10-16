@@ -123,7 +123,12 @@ def create_text_image(text, image_export=False, **kwargs):
             line_w = line_width(size)
             last_line_w = line_w
 
-            lines = textwrap.wrap(msg, width=line_w)
+            lines = []
+            for line in msg.splitlines():
+                cur_lines = textwrap.wrap(line, width=line_w)
+                for cur_line in cur_lines:
+                    lines.append(cur_line)
+            
             font = load_font(size)
             total_w, line_h = font.getsize(msg)
             tot_height = len(lines) * line_h
@@ -153,7 +158,12 @@ def create_text_image(text, image_export=False, **kwargs):
 
     font = load_font(size)
     font_w, font_h = font.getsize(text)
-    lines = textwrap.wrap(text, width=line_w)
+    
+    lines = []
+    for line in text.splitlines():
+        cur_lines = textwrap.wrap(line, width=line_w)
+        for cur_line in cur_lines:
+            lines.append(cur_line)
     text_y_start = center_y(lines, font_h)
 
     canvas = Image.new('RGB', (text_canvas_w, text_canvas_h), text_canvas_bg)
