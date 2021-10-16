@@ -123,8 +123,6 @@ def create_text_image(text, image_export=False, **kwargs):
             line_w = line_width(size)
             last_line_w = line_w
 
-            # Fix: preserve newlines
-            #lines = textwrap.wrap(msg, width=line_w)
             lines = []
             for line in msg.splitlines():
                 cur_lines = textwrap.wrap(line, width=line_w)
@@ -161,8 +159,6 @@ def create_text_image(text, image_export=False, **kwargs):
     font = load_font(size)
     font_w, font_h = font.getsize(text)
     
-    # Fix: preserve newlines
-    #lines = textwrap.wrap(text, width=line_w)
     lines = []
     for line in text.splitlines():
         cur_lines = textwrap.wrap(line, width=line_w)
