@@ -141,7 +141,7 @@ class Token(object):
             logger.info("access_token does not contain required values. someting broke")
             raise e
 
-    def _create_session(self, retries=3, backoff_factor=1, status_forcelist=(500, 502, 504)):
+    def _create_session(self, retries=5, backoff_factor=0.5, status_forcelist=(500, 502, 504)):
         # XXX: Backend will terminate connection if we request too frequently
         session = requests.Session()
         retry = Retry(
