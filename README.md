@@ -76,8 +76,8 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
-### v2.3, (pending)
-- changing in internals of swissid token authentication due to introduction of anomaly-detection
+### v2.3, 2022-09-30
+- changings in internals of swissid token authentication due to introduction of anomaly-detection #41
 
 ### v2.2, 2021-07-07
 - drop support for postcard_creator_legacy
