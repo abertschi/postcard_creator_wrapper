@@ -326,7 +326,6 @@ class Token(object):
               "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
         resp = session.post(url, allow_redirects=True)
         _log_and_dump(resp)
-        auth_id_username_pw = resp.json()['tokens']['authId']
 
         # submit username and password
         url_query_string = "locale=en&goto=" + goto_param + \
@@ -334,7 +333,7 @@ class Token(object):
 
         url = "https://login.swissid.ch/api-login/authenticate/basic?" + url_query_string
         headers = self.swissid_headers
-        headers['authId'] = auth_id_username_pw
+        headers['authId'] = resp.json()['tokens']['authId']
         step_data = {
             'username': username,
             'password': password
