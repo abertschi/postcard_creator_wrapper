@@ -77,7 +77,7 @@ pytest
 
 ## Release notes
 ### v2.3, 2022-09-30
-- changings in internals of swissid token authentication due to introduction of anomaly-detection #41
+- changes in internals of swissid token authentication due to introduction of anomaly-detection #41
 
 ### v2.2, 2021-07-07
 - drop support for postcard_creator_legacy
