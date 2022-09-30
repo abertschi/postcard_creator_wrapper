@@ -9,7 +9,9 @@ from urllib.parse import parse_qs, urlparse
 
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
 from requests_toolbelt.utils import dump
+from urllib3 import Retry
 
 from postcard_creator.postcard_creator import PostcardCreatorException
 
@@ -61,15 +63,14 @@ class Token(object):
         self.base = '{}account.post.ch'.format(self.protocol)
         self.swissid = '{}login.swissid.ch'.format(self.protocol)
         self.token_url = '{}postcardcreator.post.ch/saml/SSO/alias/defaultAlias'.format(self.protocol)
+        self.user_agent = 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' + \
+                          'AppleWebKit/537.36 (KHTML, like Gecko) ' + \
+                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36'
         self.legacy_headers = {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
-                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+            'User-Agent': self.user_agent
         }
         self.swissid_headers = {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; wv) ' +
-                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                          'Version/4.0 Chrome/52.0.2743.98 Mobile Safari/537.36',
+            'User-Agent': self.user_agent
         }
 
         self.token = None
@@ -140,8 +141,20 @@ class Token(object):
             logger.info("access_token does not contain required values. someting broke")
             raise e
 
-    def _create_session(self):
-        return requests.Session()
+    def _create_session(self, retries=3, backoff_factor=1, status_forcelist=(500, 502, 504)):
+        # XXX: Backend will terminate connection if we request too frequently
+        session = requests.Session()
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        return session
 
     def _get_code_verifier(self):
         return base64_encode(secrets.token_bytes(64))
@@ -313,19 +326,24 @@ class Token(object):
               "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
         resp = session.post(url, allow_redirects=True)
         _log_and_dump(resp)
-        auth_id = resp.json()['tokens']['authId']
+        auth_id_username_pw = resp.json()['tokens']['authId']
 
         # submit username and password
-        url = "https://login.swissid.ch/api-login/authenticate/basic?locale=en&goto=" + goto_param + \
-              "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
+        url_query_string = "locale=en&goto=" + goto_param + \
+                           "&acr_values=loa-1&realm=%2Fsesam&service=qoa1"
+
+        url = "https://login.swissid.ch/api-login/authenticate/basic?" + url_query_string
         headers = self.swissid_headers
-        headers['authId'] = auth_id
+        headers['authId'] = auth_id_username_pw
         step_data = {
             'username': username,
             'password': password
         }
         resp = session.post(url, json=step_data, headers=headers, allow_redirects=True)
         _log_and_dump(resp)
+
+        # anomaly detection
+        resp = self._swiss_id_anomaly_detection(session, resp, url_query_string)
 
         try:
             url = resp.json()['nextAction']['successUrl']
@@ -389,6 +407,63 @@ class Token(object):
             raise PostcardCreatorException("not able to fetch access token: " + resp.text)
 
         return resp.json()
+
+    def _swiss_id_anomaly_detection(self, session, prev_response, url_query_string):
+        # XXX: Starting 2022-10, endpoints introduce anomaly detection, possibly to further restrict automated access
+        # Currently, any valid device_print payload seems to work
+        # useragent in request and payload can differ and still be valid
+        url = 'https://login.swissid.ch/api-login/anomaly-detection/device-print?' + url_query_string
+        device_print_ctx = prev_response.json()
+        try:
+            next_action = device_print_ctx['nextAction']['type']
+            if next_action != 'SEND_DEVICE_PRINT':
+                logger.warning('next action must be SEND_DEVICE_PRINT but got ' + next_action)
+            auth_id_device_print = device_print_ctx['tokens']['authId']
+            device_print = self._formulate_anomaly_detection()
+            headers = self.swissid_headers
+            headers['authId'] = auth_id_device_print
+            resp = session.post(url, json=device_print, headers=headers)
+            _log_and_dump(resp)
+        except Exception as e:
+            msg = "Anomaly detection step failed. \n" \
+                  + f"previous response body: {device_print_ctx}\n" \
+                  + f"pending request: {url} \n"
+            logger.info(msg)
+            logger.info(e)
+            raise PostcardCreatorException(msg, e)
+        return resp
+
+    def _formulate_anomaly_detection(self):
+        # Valid device_print generated in an x86 android 12 emulator,
+        # XXX: if something breaks in the future, we may have to get more clever here
+        device_print = {
+            "appCodeName": "Mozilla",
+            "appName": "Netscape",
+            "appVersion": self.user_agent.replace('Mozilla/', ''),  # Mozilla/5.0
+            "fonts": {
+                "installedFonts": "cursive;monospace;serif;sans-serif;fantasy;default;Arial;Courier;" + \
+                                  "Courier New;Georgia;Tahoma;Times;Times New Roman;Verdana"
+            },
+            "language": "de",
+            "platform": "Linux x86_64",
+            "plugins": {
+                "installedPlugins": ""
+            },
+            "product": "Gecko",
+            "productSub": "20030107",
+            "screen": {
+                "screenColourDepth": 24,
+                "screenHeight": 732,
+                "screenWidth": 412
+            },
+            "timezone": {
+                "timezone": -120
+            },
+            "userAgent": self.user_agent,
+            "vendor": "Google Inc."
+        }
+
+        return device_print
 
     def to_json(self):
         return {
