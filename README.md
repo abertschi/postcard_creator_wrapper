@@ -24,6 +24,7 @@ w.send_free_card(postcard=)
 ```
 
 ## Usage
+Log in with your swiss id username and password. Note that 2-factor authentication is not supported. 
 
 ```python
 from postcard_creator.postcard_creator import PostcardCreator, Postcard, Token, Recipient, Sender
@@ -38,7 +39,6 @@ card = Postcard(message='', recipient=recipient, sender=sender, picture_stream=o
 w = PostcardCreator(token)
 w.send_free_card(postcard=card, mock_send=False, image_export=False)
 ```
-- Please ensure *not* to enable two factor authentication in your swissid account.
 
 ### Advanced configuration
 The following keyword arguments are available for advanced configuration.
