@@ -38,6 +38,7 @@ card = Postcard(message='', recipient=recipient, sender=sender, picture_stream=o
 w = PostcardCreator(token)
 w.send_free_card(postcard=card, mock_send=False, image_export=False)
 ```
+- Please ensure *not* to enable two factor authentication in your swissid account.
 
 ### Advanced configuration
 The following keyword arguments are available for advanced configuration.
