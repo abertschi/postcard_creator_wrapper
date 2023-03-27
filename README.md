@@ -24,7 +24,7 @@ w.send_free_card(postcard=)
 ```
 
 ## Usage
-Log in with your swiss id username and password. Note that 2-factor authentication is not supported. 
+Log in with your swiss id username and password. Note that 2-factor authentication is not supported (See https://github.com/abertschi/postcard_creator_wrapper/issues/40#issuecomment-1485362680).
 
 ```python
 from postcard_creator.postcard_creator import PostcardCreator, Postcard, Token, Recipient, Sender
