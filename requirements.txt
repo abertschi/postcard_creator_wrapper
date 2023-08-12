@@ -8,7 +8,7 @@ distlib==0.3.6
 filelock==3.8.0
 idna==2.5
 olefile==0.44
-Pillow==9.2.0
+Pillow==9.3.0
 platformdirs==2.5.2
 pluggy==0.4.0
 py==1.4.34
