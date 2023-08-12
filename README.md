@@ -120,6 +120,8 @@ install_requires without explicit version numbers
 `pip install` fails with the above error. Install libjpeg as discussed here
 https://stackoverflow.com/questions/44043906/the-headers-or-library-files-could-not-be-found-for-jpeg-installing-pillow-on
 
+#### "AttributeError: 'FreeTypeFont' object has no attribute 'getsize'"
+pip install Pillow==9.5.0
 
 ## Author
 
