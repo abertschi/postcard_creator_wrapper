@@ -46,6 +46,10 @@ The following keyword arguments are available for advanced configuration.
 **PostcardCreator#send_free_card()**:
 - `image_export=False`: Export postcard image to current directory (os.getcwd)
 - `mock_send=False`: Do not submit order (testing)
+- `fallback_color_fill=False`: On False: If image is too small, force upscale to
+   match postcard aspect ration (background-size: contain), on True: fallback to
+   color fill mode where image is centered and border is filled with most
+   dominant color found in image.
 
 ### Logging
 ```python
@@ -77,6 +81,8 @@ pytest
 - [postcardcreator](https://github.com/gido/postcardcreator) - node.js API for the Swiss Post Postcard Creator
 
 ## Release notes
+### 2.4, 2023-08-12
+- add fallback_color_fill parameter in send_free_card() 
 ### v2.3, 2022-09-30
 - changes in internals of swissid token authentication due to introduction of anomaly-detection #41
 
